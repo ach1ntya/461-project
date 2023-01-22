@@ -1,5 +1,5 @@
 # 461-project
 Achintya Pinninti
 Daniel Kholodenko
-Ben Brown
+BEN Brown
 Joel Chiang Pak Wei
