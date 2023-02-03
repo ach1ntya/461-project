@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
-	"bufio"
 	"os/exec"
 )
 
@@ -30,12 +30,25 @@ func installDeps() {
 			}
 		}
 	}
-	fmt.Println(count, "packages installed...")
-
+	if count == 0 {
+		fmt.Println("No packages installed.")
+		os.Exit(1)
+	} else {
+		fmt.Println(count, "packages installed...")
+		os.Exit(0)
+	}
 }
 
 func compile() {
-	fmt.Println("compile...")
+	command := exec.Command("go", "build", "run.go")
+	err := command.Run()
+	if err != nil {
+		fmt.Println("Error: ", err)
+		os.Exit(1)
+	} else {
+		fmt.Println("Build successful...")
+		os.Exit(0)
+	}
 }
 
 func test() {
@@ -44,7 +57,6 @@ func test() {
 
 func main() {
 	args := os.Args[1:]
-	// fmt.Println(args)
 	if args[0] == "install" {
 		installDeps()
 	}
@@ -54,5 +66,6 @@ func main() {
 	if args[0] == "test" {
 		test()
 	}
+	if args[0] == 
 
 }
