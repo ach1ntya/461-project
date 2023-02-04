@@ -55,17 +55,23 @@ func test() {
 	fmt.Println("test...")
 }
 
+func help() {
+	fmt.Println("Unknown command\nUsage: ./run [command] [args]\nCommands:\n\tinstall\t\tInstall dependencies\n\tbuild\t\tBuild the project\n\ttest\t\tRun tests\n\tURL FILE\tScore all URLs in the file")
+}
+
 func main() {
 	args := os.Args[1:]
 	if args[0] == "install" {
 		installDeps()
-	}
-	if args[0] == "build" {
+	} else if args[0] == "build" {
 		compile()
-	}
-	if args[0] == "test" {
+	} else if args[0] == "test" {
 		test()
+	} else if args[0] == "URL FILE" {
+		//add function and function call here
+	} else {
+		help()
+		os.Exit(1)
 	}
-	if args[0] == 
 
 }
