@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 func installDeps() {
-	// fmt.Println("install deps...")
 	file, err := os.Open("requirements.txt")
 	if err != nil {
 		fmt.Println("Error: ", err)
@@ -59,6 +59,27 @@ func help() {
 	fmt.Println("Unknown command\nUsage: ./run [command] [args]\nCommands:\n\tinstall\t\tInstall dependencies\n\tbuild\t\tBuild the project\n\ttest\t\tRun tests\n\tURL FILE\tScore all URLs in the file")
 }
 
+func file(filename string){
+	_, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		fmt.Println("Error: ", err)
+		os.Exit(1)
+	}
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Println(line)
+		// call sub function to score each line/project
+	}
+}
+
 func main() {
 	args := os.Args[1:]
 	if args[0] == "install" {
@@ -67,8 +88,9 @@ func main() {
 		compile()
 	} else if args[0] == "test" {
 		test()
-	} else if args[0] == "URL FILE" {
-		//add function and function call here
+	} else if filepath.Ext(args[0]) == ".txt" {
+		file(args[0])
+		
 	} else {
 		help()
 		os.Exit(1)
