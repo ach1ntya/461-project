@@ -68,7 +68,9 @@ func main() {
 	if args[0] == "test" {
 		// test()
 	}
+}
 
+func getnumPR() {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: "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"},
