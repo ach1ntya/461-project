@@ -6,7 +6,25 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
+
+func main() {
+	args := os.Args[1:]
+	if args[0] == "install" {
+		installDeps()
+	} else if args[0] == "build" {
+		compile()
+	} else if args[0] == "test" {
+		test()
+	} else if filepath.Ext(args[0]) == ".txt" {
+		file(args[0])
+
+	} else {
+		help()
+		os.Exit(1)
+	}
+}
 
 func installDeps() {
 	file, err := os.Open("requirements.txt")
@@ -59,7 +77,7 @@ func help() {
 	fmt.Println("Unknown command\nUsage: ./run [command] [args]\nCommands:\n\tinstall\t\tInstall dependencies\n\tbuild\t\tBuild the project\n\ttest\t\tRun tests\n\tURL FILE\tScore all URLs in the file")
 }
 
-func file(filename string){
+func file(filename string) {
 	_, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		fmt.Println("Error: ", err)
@@ -77,23 +95,20 @@ func file(filename string){
 		line := scanner.Text()
 		fmt.Println(line)
 		// call sub function to score each line/project
+		if strings.Contains(line, "github.com") {
+			github(line)
+		} else if strings.Contains(line, "npmjs.com") {
+			// call npmjs function
+		} else {
+			fmt.Println("Error: ", line, "is not a valid URL")
+		}
 	}
 }
 
-func main() {
-	args := os.Args[1:]
-	if args[0] == "install" {
-		installDeps()
-	} else if args[0] == "build" {
-		compile()
-	} else if args[0] == "test" {
-		test()
-	} else if filepath.Ext(args[0]) == ".txt" {
-		file(args[0])
-		
-	} else {
-		help()
-		os.Exit(1)
-	}
-
+func github(url string){
+	split := strings.Split(url, "/")
+	owner := split[len(split)-2]
+	repo := split[len(split)-1]
+	print("Owner: ", owner, " Repo: ", repo, "\n")
 }
+
