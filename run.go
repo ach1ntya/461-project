@@ -1,11 +1,25 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
 	"os/exec"
+
+	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 )
+
+type Package struct {
+	FullName      string
+	Description   string
+	StarsCount    int
+	ForksCount    int
+	LastUpdatedBy string
+}
 
 func installDeps() {
 	// fmt.Println("install deps...")
@@ -46,13 +60,58 @@ func main() {
 	args := os.Args[1:]
 	// fmt.Println(args)
 	if args[0] == "install" {
-		installDeps()
+		// installDeps()
 	}
 	if args[0] == "build" {
-		compile()
+		// compile()
 	}
 	if args[0] == "test" {
-		test()
+		// test()
 	}
 
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: "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"},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	// get go-github client
+	client := github.NewClient(tc)
+
+	repo, _, err := client.Repositories.Get(ctx, "Golang-Coach", "Lessons")
+	url := fmt.Sprintf("https://api.github.com/repos/%s/pulls", repo)
+
+	resp, errUrl := http.Get(url)
+	fmt.Print(resp)
+	if errUrl != nil {
+		fmt.Println("Error fetching pull requests:", errUrl)
+		return
+	}
+
+	if err != nil {
+		fmt.Printf("Problem in getting repository information %v\n", err)
+		os.Exit(1)
+	}
+
+	defer resp.Body.Close() //ensure function executes after main function is completed.
+
+	var pullRequests []map[string]interface{} //stores a list of pull requests from API response
+
+	err = json.NewDecoder(resp.Body).Decode(&pullRequests)
+
+	if err != nil {
+		fmt.Println("Error decoding response:", err)
+		return
+	}
+
+	numPR := len(pullRequests)
+	fmt.Println("Number of pull requests:", numPR)
+
+	pack := &Package{
+		FullName:    *repo.FullName,
+		Description: *repo.Description,
+		ForksCount:  *repo.ForksCount,
+		StarsCount:  *repo.StargazersCount,
+	}
+
+	fmt.Printf("%+v\n", pack)
 }
