@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"io/util"
+	"io/ioutil"
 	"encoding/json"
 	"net/http"
 	"os/exec"
