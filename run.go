@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"io/util"
+	"encoding/json"
+	"net/http"
 	"os/exec"
 	"path/filepath"
 )
@@ -95,5 +98,46 @@ func main() {
 		help()
 		os.Exit(1)
 	}
+
+}
+
+func npmRestAPI() {
+	
+	//http get request to connect to registry api of package
+	//response, err := http.Get("https://registry.npmjs.org/express")
+	response, err := http.Get("https://registry.npmjs.org/browserify")
+
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+	
+	//read api response into responseData
+	responseData, err := ioutil.ReadAll(response.Body)
+	
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+		//log.Fatal(err)
+	}
+	
+	//creates an object to store json data
+	contributors := make(map[string]interface{})
+	
+	//Unmarshalls json data into contributors object and returns err
+	err = json.Unmarshal(responseData, &contributors)
+
+	if err != nil {
+		fmt.Print("failed to decode api response: %s", err)
+		return
+	}
+
+	//stores list of maintainers into array object
+	array := contributors["maintainers"].([]interface{})
+	numContributors := len(array) //number of active maintainers for package
+
+	//output numContributors and license
+	fmt.Print("number of contributors: ", numContributors)
+	fmt.Print("\nlicense: ", contributors["license"])
 
 }
