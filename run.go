@@ -102,14 +102,16 @@ func npmjs(url string) {
 	split := strings.Split(url, "/")
 	packageName := split[len(split)-1]
 	print("Package: ", packageName, "\n")
-	npmRestAPI()
+	npmRestAPI(packageName)
 }
 
-func npmRestAPI() {
+func npmRestAPI(packageName string) {
+
+	url := "https://registry.npmjs.org/" + packageName
 
 	//http get request to connect to registry api of package
 	//response, err := http.Get("https://registry.npmjs.org/express")
-	response, err := http.Get("https://registry.npmjs.org/browserify")
+	response, err := http.Get(url)
 
 	//update rest API method to dynamically take in package name
 
