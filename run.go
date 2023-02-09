@@ -106,7 +106,7 @@ func file(filename string){
 			//score := scoreGitHub()
 		} else if (match == "www.npmjs") {
 			//npm
-			scoreNPM(scoreObject, string(line))
+			scoreNPM(scoreObject)
 			//fmt.Println(score)
 		}
 
@@ -119,8 +119,8 @@ func scoreGitHub(scoreObject attribute){
 	print("no score yet")
 }
 
-func scoreNPM(scoreObject *attribute, url string) {
-	npmRestAPI(scoreObject, url)
+func scoreNPM(scoreObject *attribute) {
+	npmRestAPI(scoreObject)
 	fmt.Println("url:", scoreObject.url)
 	fmt.Println("\nMaintainers:", scoreObject.responsiveness)
 	fmt.Println("\nlicense:", scoreObject.license)
@@ -145,18 +145,15 @@ func main() {
 
 }
 
-func npmRestAPI(scoreObject *attribute, url string) {
+func npmRestAPI(scoreObject *attribute) {
 	
 	//http get request to connect to registry api of package
 	regex, _ := regexp.Compile("[^\\/]*$")
 		
-	match := regex.FindString(string(url))
+	match := regex.FindString(string(scoreObject.url))
 
-
-	//response, err := http.Get("https://registry.npmjs.org/express")
-	//response, err := http.Get("https://registry.npmjs.org/browserify")
 	response, err := http.Get("https://registry.npmjs.org/" + match)
-	fmt.Println(url)
+	//fmt.Println(url)
 	if err != nil {
 		fmt.Print(err.Error())
 		os.Exit(1)
