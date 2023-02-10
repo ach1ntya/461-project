@@ -108,23 +108,15 @@ func file(filename string) {
 	}
 }
 
-/*func scoreGitHub(scoreObject attribute){
-	print("no score yet")
-}
-
-func scoreNPM(scoreObject *attribute) {
-	npmRestAPI(scoreObject)
-	fmt.Println("url:", scoreObject.url)
-	fmt.Println("\nMaintainers:", scoreObject.responsiveness)
-	fmt.Println("\nlicense:", scoreObject.license)
-	return
-}*/
-
-func github(url string, scoreOject *attribute) {
+func github(url string, scoreObject *attribute) {
 	split := strings.Split(url, "/")
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
 	print("Owner: ", owner, " Repo: ", repo, "\n")
+	//githubRestAPI
+	//githubGraphQL
+	value := githubSource(scoreObject, url)
+	fmt.Println(value)
 }
 
 func npmjs(url string, scoreObject *attribute) {
@@ -132,20 +124,28 @@ func npmjs(url string, scoreObject *attribute) {
 	packageName := split[len(split)-1]
 	print("Package: ", packageName, "\n")
 	npmRestAPI(packageName, scoreObject)
+	//npmGraphQL
+	//npmSource
 }
 
-//func npmRestAPI(packageName string) {
+func githubSource(scoreObject *attribute, url string) (output []byte){
 
-//	url := "https://registry.npmjs.org/" + packageName
+	command := exec.Command("cloner.py", url)
+	output, err := command.Output()
+	
+	if err != nil{
+		fmt.Println(err.Error())
+		return
+	}
+	
+	return output
 
+}
 func npmRestAPI(packageName string, scoreObject *attribute) {
 	
-	//http get request to connect to registry api of package
-	//response, err := http.Get("https://registry.npmjs.org/express")
+	//append packageName to the api url and send request
 	url := "https://registry.npmjs.org/" + packageName
 	response, err := http.Get(url)
-
-	//update rest API method to dynamically take in package name
 
 	if err != nil {
 		fmt.Print(err.Error())
@@ -186,6 +186,18 @@ func npmRestAPI(packageName string, scoreObject *attribute) {
 	fmt.Print("\nlicense: ", contributors["license"].(string))
 	fmt.Print("\n")
 
+}
+
+func licenseCompatability(license string) (compatible bool) {
+	licenseArr := [6]string{"MIT", "X11", "Public Domain", "BSD-new", "Apache 2.0", "LGPLv2.1"}
+	
+	for _, l := range licenseArr{
+		if l == license{
+			return true
+		}
+	}
+
+	return false
 }
 
 func main() {

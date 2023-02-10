@@ -9,6 +9,7 @@ def clone_repo(url):
     print(url_string) 
     Repo.clone_from(url_string, "/Users/Ben_Brown19/Desktop/school/ECE_461/cloneage/zlone")
     #repo = Repo.clone_from("https://github.com/brow1770/goprac.git", "/Users/Ben_Brown19/Desktop/school/ECE_461/cloneage/blone")
+    print("success")
     f.close()
 
 def main():
