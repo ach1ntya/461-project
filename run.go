@@ -2,14 +2,14 @@ package main
 
 import (
 	"bufio"
-	"fmt"
-	"os"
-	"io/ioutil"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
+	"strings"
 )
 
 type attribute struct{
@@ -78,7 +78,7 @@ func help() {
 	fmt.Println("Unknown command\nUsage: ./run [command] [args]\nCommands:\n\tinstall\t\tInstall dependencies\n\tbuild\t\tBuild the project\n\ttest\t\tRun tests\n\tURL FILE\tScore all URLs in the file")
 }
 
-func file(filename string){
+func file(filename string) {
 	_, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		fmt.Println("Error: ", err)
@@ -97,25 +97,18 @@ func file(filename string){
 		//fmt.Println(line)
 		scoreObject := newURL(string(line))
 
-		regex, _ := regexp.Compile("(github|www.npmjs)")
-		
-		match := regex.FindString(string(line))
-
-		if(match == "github"){
-			fmt.Println(match)
-			//score := scoreGitHub()
-		} else if (match == "www.npmjs") {
-			//npm
-			scoreNPM(scoreObject)
-			//fmt.Println(score)
-		}
-
 		// call sub function to score each line/project
-		//create attribute object
+		if strings.Contains(line, "github.com") {
+			github(line, scoreObject)
+		} else if strings.Contains(line, "npmjs.com") {
+			npmjs(line, scoreObject)
+		} else {
+			fmt.Println("Error: ", line, "is not a valid URL")
+		}
 	}
 }
 
-func scoreGitHub(scoreObject attribute){
+/*func scoreGitHub(scoreObject attribute){
 	print("no score yet")
 }
 
@@ -125,52 +118,52 @@ func scoreNPM(scoreObject *attribute) {
 	fmt.Println("\nMaintainers:", scoreObject.responsiveness)
 	fmt.Println("\nlicense:", scoreObject.license)
 	return
+}*/
+
+func github(url string, scoreOject *attribute) {
+	split := strings.Split(url, "/")
+	owner := split[len(split)-2]
+	repo := split[len(split)-1]
+	print("Owner: ", owner, " Repo: ", repo, "\n")
 }
 
-func main() {
-	args := os.Args[1:]
-	if args[0] == "install" {
-		installDeps()
-	} else if args[0] == "build" {
-		compile()
-	} else if args[0] == "test" {
-		test()
-	} else if filepath.Ext(args[0]) == ".txt" {
-		file(args[0])
-		
-	} else {
-		help()
-		os.Exit(1)
-	}
-
+func npmjs(url string, scoreObject *attribute) {
+	split := strings.Split(url, "/")
+	packageName := split[len(split)-1]
+	print("Package: ", packageName, "\n")
+	npmRestAPI(packageName, scoreObject)
 }
 
-func npmRestAPI(scoreObject *attribute) {
+//func npmRestAPI(packageName string) {
+
+//	url := "https://registry.npmjs.org/" + packageName
+
+func npmRestAPI(packageName string, scoreObject *attribute) {
 	
 	//http get request to connect to registry api of package
-	regex, _ := regexp.Compile("[^\\/]*$")
-		
-	match := regex.FindString(string(scoreObject.url))
+	//response, err := http.Get("https://registry.npmjs.org/express")
+	url := "https://registry.npmjs.org/" + packageName
+	response, err := http.Get(url)
 
-	response, err := http.Get("https://registry.npmjs.org/" + match)
-	//fmt.Println(url)
+	//update rest API method to dynamically take in package name
+
 	if err != nil {
 		fmt.Print(err.Error())
 		os.Exit(1)
 	}
-	
+
 	//read api response into responseData
 	responseData, err := ioutil.ReadAll(response.Body)
-	
+
 	if err != nil {
 		fmt.Print(err.Error())
 		os.Exit(1)
 		//log.Fatal(err)
 	}
-	
+
 	//creates an object to store json data
 	contributors := make(map[string]interface{})
-	
+
 	//Unmarshalls json data into contributors object and returns err
 	err = json.Unmarshal(responseData, &contributors)
 
@@ -189,9 +182,25 @@ func npmRestAPI(scoreObject *attribute) {
 
 
 	//output numContributors and license
-	//fmt.Print("number of contributors: ", numContributors)
-	//fmt.Print("\nlicense: ", contributors["license"])
-	
-	//return numContributors
+	fmt.Print("number of contributors: ", scoreObject.responsiveness)
+	fmt.Print("\nlicense: ", contributors["license"].(string))
+	fmt.Print("\n")
+
+}
+
+func main() {
+	args := os.Args[1:]
+	if args[0] == "install" {
+		installDeps()
+	} else if args[0] == "build" {
+		compile()
+	} else if args[0] == "test" {
+		test()
+	} else if filepath.Ext(args[0]) == ".txt" {
+		file(args[0])
+	} else {
+		help()
+		os.Exit(1)
+	}
 
 }
