@@ -150,6 +150,26 @@ func npmRestAPI(packageName string) {
 
 }
 
+type PullRequests struct {
+	TotalCount int `json:"total_count"`
+}
+
+func numPullReq() {
+	url := "https://api.github.com/search/issues?q=is:pr+repo:joelchiang2k/Linkr" //change repo name OWNER/REPO
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	client := &http.Client{}
+	res, _ := client.Do(req)
+
+	defer res.Body.Close()
+
+	var pullRequests PullRequests
+	json.NewDecoder(res.Body).Decode(&pullRequests)
+
+	fmt.Printf("Number of pull requests in joelchiang2k/Linkr: %d\n", pullRequests.TotalCount)
+}
+
 func main() {
 	args := os.Args[1:]
 	if args[0] == "install" {
