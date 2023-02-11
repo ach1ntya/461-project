@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"strconv"
 )
 
 type attribute struct{
@@ -92,6 +93,8 @@ func file(filename string) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	var githubCount int = 0
+	var	npmjsCount int = 0
 	for scanner.Scan() {
 		line := scanner.Text()
 		//fmt.Println(line)
@@ -99,27 +102,30 @@ func file(filename string) {
 
 		// call sub function to score each line/project
 		if strings.Contains(line, "github.com") {
-			github(line, scoreObject)
+			githubCount += 1
+			github(line, scoreObject, githubCount)
 		} else if strings.Contains(line, "npmjs.com") {
-			npmjs(line, scoreObject)
+			npmjsCount += 1
+			npmjs(line, scoreObject, npmjsCount)
 		} else {
 			fmt.Println("Error: ", line, "is not a valid URL")
 		}
 	}
 }
 
-func github(url string, scoreObject *attribute) {
+func github(url string, scoreObject *attribute, count int) {
 	split := strings.Split(url, "/")
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
 	print("Owner: ", owner, " Repo: ", repo, "\n")
 	//githubRestAPI
 	//githubGraphQL
-	value := githubSource(scoreObject, url)
+	value := githubSource(scoreObject, url, count)
+	//intConv, _ := strconv.Atoi(string(value))
 	fmt.Println(value)
 }
 
-func npmjs(url string, scoreObject *attribute) {
+func npmjs(url string, scoreObject *attribute, count int) {
 	split := strings.Split(url, "/")
 	packageName := split[len(split)-1]
 	print("Package: ", packageName, "\n")
@@ -128,11 +134,22 @@ func npmjs(url string, scoreObject *attribute) {
 	//npmSource
 }
 
-func githubSource(scoreObject *attribute, url string) (output []byte){
+func githubSource(scoreObject *attribute, url string, count int) (output []byte){
 
-	command := exec.Command("cloner.py", url)
-	output, err := command.Output()
+	//command := exec.Command("python3", "cloner.py", url, strconv.Itoa(count))
+	command := exec.Command("python3", "cloner.py", url, strconv.Itoa(count))
+	//output, err := command.Output()
 	
+	/*if err != nil{
+		fmt.Println(err.Error())
+		return
+	}*/
+	
+	//exec.Command("cd", "g" + strconv.Itoa(count)).Run()
+	//fmt.Println("g" + strconv.Itoa(count))
+	//command := exec.Command("cd", "/Users/Ben_Brown19/Desktop/school/ECE_461/461-Project/cloneDir/g" + strconv.Itoa(count), "&&", "git", "rev-list", "--all", "--count")
+	output, err := command.Output()
+
 	if err != nil{
 		fmt.Println(err.Error())
 		return
@@ -141,6 +158,7 @@ func githubSource(scoreObject *attribute, url string) (output []byte){
 	return output
 
 }
+
 func npmRestAPI(packageName string, scoreObject *attribute) {
 	
 	//append packageName to the api url and send request
