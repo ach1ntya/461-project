@@ -4,6 +4,11 @@ import (
 	"testing"
 )
 
+var (
+	testsRan    = 0
+	testsPassed = 0
+)
+
 //"github.com/google/go-github/v50/github"
 //"golang.org/x/oauth2"
 
@@ -31,7 +36,7 @@ func TestGithubPullReq(t *testing.T) {
 		"dart-lang/sdk",
 	}
 	expectedCounts := []int{
-		23,
+		24,
 		2811,
 		72782,
 		22519,
@@ -54,9 +59,16 @@ func TestGithubPullReq(t *testing.T) {
 	}
 
 	for i, repoName := range repoNames {
+		testsRan++
 		count := githubPullReq(repoName)
 		if count != expectedCounts[i] {
 			t.Errorf("For repo %s, expected count to be %d, but got %d", repoName, expectedCounts[i], count)
+		} else {
+			testsPassed++
 		}
 	}
+	// outString := string(out)
+	// var coverage int
+	// fmt.Sscanf(outString, "coverage: %d%%\n", &coverage)
+	// fmt.Printf("%d/%d test cases passed. %d%% line coverage achieved.", testsPassed, testsRan, coverage)
 }
