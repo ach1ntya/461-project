@@ -12,7 +12,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/go-github/v50/github"
 	"github.com/machinebox/graphql"
+	"golang.org/x/oauth2"
 )
 
 func installDeps() {
@@ -85,7 +87,7 @@ func file(filename string) {
 		fmt.Println(line)
 		// call sub function to score each line/project
 		if strings.Contains(line, "github.com") {
-			github(line)
+			githubFunc(line)
 		} else if strings.Contains(line, "npmjs.com") {
 			npmjs(line)
 		} else {
@@ -94,11 +96,13 @@ func file(filename string) {
 	}
 }
 
-func github(url string) {
+func githubFunc(url string) {
 	split := strings.Split(url, "/")
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
+	// print("Owner: ", owner, " Repo: ", repo, "\n")
 	gitHubGraphQL(repo, owner)
+	gitHubRestAPI(repo, owner)
 
 }
 
@@ -151,7 +155,33 @@ func npmRestAPI(packageName string) {
 	//output numContributors and license
 	fmt.Print("number of contributors: ", numContributors)
 	fmt.Print("\nlicense: ", contributors["license"])
+}
 
+func gitHubRestAPI(repo string, owner string) {
+	apiKey := os.Getenv("GITHUB_API_KEY")
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: apiKey},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+	_, _, err := client.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	pullRequests, _, err := client.PullRequests.List(ctx, owner, repo, nil)
+	if err != nil {
+		fmt.Println("Error fetching pull requests:", err)
+		return
+	}
+
+	totalPullRequests := len(pullRequests)
+	fmt.Printf("Total pull requests: %d\n", totalPullRequests)
+
+	totalIssues, _, err := client.Issues.ListByRepo(ctx, owner, repo, nil)
+	fmt.Printf("Total issues: %d\n", len(totalIssues))
 }
 
 type PullRequests struct {
@@ -175,7 +205,6 @@ func numPullReq() {
 }
 
 func gitHubGraphQL(repoName string, owner string) {
-	fmt.Println(repoName, owner)
 	client := graphql.NewClient("https://api.github.com/graphql")
 	req := graphql.NewRequest(`
 	query ($repoName: String!, $owner: String!) {
