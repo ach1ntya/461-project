@@ -305,8 +305,6 @@ func main() {
 		test()
 	} else if filepath.Ext(args[0]) == ".txt" {
 		file(args[0])
-	} else if args[0] == "npm" {
-		npmLicense("cloudinary")
 	} else {
 		help()
 		os.Exit(1)
