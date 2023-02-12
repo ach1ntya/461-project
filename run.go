@@ -3,51 +3,53 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"strconv"
-	"encoding/binary"
-	"math"
+	"strings"
+
 	//"github.com/google/go-github/v50/github"
 	"github.com/machinebox/graphql"
 	//"golang.org/x/oauth2"
 )
 
-type attribute struct{
-	url string
-	netScore string
-	rampUp float32
-	correctness float32	
-	busFactor float32	
+type attribute struct {
+	url            string
+	netScore       string
+	rampUp         float32
+	correctness    float32
+	busFactor      float32
 	responsiveness float32
-	license string 
+	license        string
 }
 
-type gitObject struct{
+type gitObject struct {
 	//numCommits float32
 	numCommits []byte
 	//numPullRequests float32
 	numPullRequests int
-	graphQL float32
+	graphQL         float32
 }
 
-type npmObject struct{
-	numCommits float32
+type npmObject struct {
+	numCommits     float32
 	numMaintainers float32
-	graphQL float32
-	gitRepo string
+	graphQL        float32
+	gitRepo        string
 }
 
-func newURL(url string) (*attribute) {
+func newURL(url string) *attribute {
 	scoreObject := attribute{url: url}
 	return &scoreObject
 }
+
 /*func newNpmObject(url string) (*npmObject) {
 	npmObj := npmObject{}
 	return &npmObj
@@ -122,7 +124,7 @@ func file(filename string) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	var	urlCount int = 0
+	var urlCount int = 0
 	for scanner.Scan() {
 		line := scanner.Text()
 		//fmt.Println(line)
@@ -143,7 +145,6 @@ func file(filename string) {
 	}
 }
 
-
 func githubFunc(url string, gitObj *gitObject, count int) {
 	split := strings.Split(url, "/")
 	owner := split[len(split)-2]
@@ -151,23 +152,23 @@ func githubFunc(url string, gitObj *gitObject, count int) {
 	print("Owner: ", owner, " Repo: ", repo, "\n")
 	gitObj.numCommits = githubSource(url, count)
 	var fullRepo string = owner + "/" + repo
-	gitObj.numPullRequests = githubPullReq(fullRepo, url)
+	gitObj.numPullRequests = githubPullReq(fullRepo)
 	//value3 := githubGraphQL
 	//intConv, _ := strconv.Atoi(string(value))
-  	//gitHubGraphQL(repo, owner)
+	//gitHubGraphQL(repo, owner)
 	fmt.Println("git num commits: ", gitObj.numCommits)
 	fmt.Println("git num PR: ", gitObj.numPullRequests)
 
-/*func githubFunc(url string) {
-	split := strings.Split(url, "/")
-	owner := split[len(split)-2]
-	repo := split[len(split)-1]
-	// print("Owner: ", owner, " Repo: ", repo, "\n")
-	gitHubGraphQL(repo, owner)
-	gitHubRestAPI(repo, owner)
+	/*func githubFunc(url string) {
+		split := strings.Split(url, "/")
+		owner := split[len(split)-2]
+		repo := split[len(split)-1]
+		// print("Owner: ", owner, " Repo: ", repo, "\n")
+		gitHubGraphQL(repo, owner)
+		gitHubRestAPI(repo, owner)
 
 
-}*/
+	}*/
 }
 
 func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
@@ -181,17 +182,17 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	fmt.Println(npmObj.numCommits)
 }
 
-func githubSource(url string, count int) (output []byte){
+func githubSource(url string, count int) (output []byte) {
 
 	//call python script that clones repo and pull number of commits
 	command := exec.Command("python3", "cloner.py", url, strconv.Itoa(count))
 	output, err := command.Output()
 
-	if err != nil{
+	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-	
+
 	return output
 
 }
@@ -199,10 +200,10 @@ func githubSource(url string, count int) (output []byte){
 func npmSource(npmObj *npmObject, count int) {
 
 	//call python script that clones repo and pull number of commits
-	command := exec.Command("python3", "cloner.py", "https://github.com/" + npmObj.gitRepo, strconv.Itoa(count))
+	command := exec.Command("python3", "cloner.py", "https://github.com/"+npmObj.gitRepo, strconv.Itoa(count))
 	output, err := command.Output()
 
-	if err != nil{
+	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
@@ -212,12 +213,12 @@ func npmSource(npmObj *npmObject, count int) {
 
 }
 
-/*type PullRequests struct {
+type PullRequests struct {
 	TotalCount int `json:"total_count"`
-}*/
+}
 
-func githubPullReq(repoName string, url string) (value2 int) {
-	req, _ := http.NewRequest("GET", "https://api.github.com/search/issues?q=is:pr+repo:" + repoName, nil)
+func githubPullReq(repoName string) (value2 int) {
+	req, _ := http.NewRequest("GET", "https://api.github.com/search/issues?q=is:pr+repo:"+repoName, nil)
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	client := &http.Client{}
@@ -234,11 +235,10 @@ func githubPullReq(repoName string, url string) (value2 int) {
 	json.NewDecoder(res.Body).Decode(&pullRequests)
 
 	return pullRequests.TotalCount
-	//fmt.Printf("Number of pull requests in joelchiang2k/Linkr: %d\n", pullRequests.TotalCount)
 }
 
 func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
-	
+
 	//append packageName to the api url and send request
 	url := "https://registry.npmjs.org/" + packageName
 	response, err := http.Get(url)
@@ -276,7 +276,6 @@ func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 	scoreObject.license = license.(string)
 	//fmt.Print(scoreObject.responsiveness)
 
-
 	//output numContributors and license
 
 	fmt.Print("number of contributors: ", scoreObject.responsiveness)
@@ -285,7 +284,7 @@ func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 	split := strings.Split(contributors["repository"].(map[string]interface{})["url"].(string), "/")
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
-	fmt.Println("Owner: " ,owner, " Repo: ", repo)
+	fmt.Println("Owner: ", owner, " Repo: ", repo)
 	//var npmGitString string = owner + "/" + repo
 	npmObj.gitRepo = owner + "/" + repo
 	//fmt.Print("\ngithub url: ", contributors["repository"].(map[string]interface{})["url"])
@@ -295,9 +294,9 @@ func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 
 func licenseCompatability(license string) (compatible bool) {
 	licenseArr := [6]string{"MIT", "X11", "Public Domain", "BSD-new", "Apache 2.0", "LGPLv2.1"}
-	
-	for _, l := range licenseArr{
-		if l == license{
+
+	for _, l := range licenseArr {
+		if l == license {
 			return true
 		}
 	}
@@ -334,31 +333,6 @@ func licenseCompatability(license string) (compatible bool) {
 	totalIssues, _, err := client.Issues.ListByRepo(ctx, owner, repo, nil)
 	fmt.Printf("Total issues: %d\n", len(totalIssues))
 }*/
-
-type PullRequests struct {
-	TotalCount int `json:"total_count"`
-}
-
-func numPullReq() {
-	url := "https://api.github.com/search/issues?q=is:pr+repo:joelchiang2k/Linkr" //change repo name OWNER/REPO
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("Accept", "application/vnd.github+json")
-
-	client := &http.Client{}
-	res, err := client.Do(req)
-
-	if err != nil {
-		fmt.Print(err.Error())
-		os.Exit(1)
-	}
-
-	defer res.Body.Close()
-
-	var pullRequests PullRequests
-	json.NewDecoder(res.Body).Decode(&pullRequests)
-
-	fmt.Printf("Number of pull requests in joelchiang2k/Linkr: %d\n", pullRequests.TotalCount)
-}
 
 func gitHubGraphQL(repoName string, owner string) {
 	client := graphql.NewClient("https://api.github.com/graphql")
