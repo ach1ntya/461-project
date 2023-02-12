@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"encoding/binary"
 	"math"
-	"github.com/google/go-github/v50/github"
+	//"github.com/google/go-github/v50/github"
 	"github.com/machinebox/graphql"
-	"golang.org/x/oauth2"
+	//"golang.org/x/oauth2"
 )
 
 type attribute struct{
@@ -130,7 +130,7 @@ func file(filename string) {
 		if strings.Contains(line, "github.com") {
 			//var gitObj gitObject
 			urlCount += 1
-			github(line, scoreObject, urlCount)
+			githubFunc(line, scoreObject, urlCount)
 		} else if strings.Contains(line, "npmjs.com") {
 			var npmObj npmObject
 			urlCount += 1
@@ -142,19 +142,19 @@ func file(filename string) {
 }
 
 
-func github(url string, scoreObject *attribute, count int) {
+func githubFunc(url string, scoreObject *attribute, count int) {
 	split := strings.Split(url, "/")
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
 	print("Owner: ", owner, " Repo: ", repo, "\n")
 	value1 := githubSource(scoreObject, url, count)
-	//var fullRepo string = owner + "/" + repo
-	//value2 := githubPullReq(fullRepo, scoreObject, url)
+	var fullRepo string = owner + "/" + repo
+	value2 := githubPullReq(fullRepo, scoreObject, url)
 	//value3 := githubGraphQL
 	//intConv, _ := strconv.Atoi(string(value))
-  gitHubGraphQL(repo, owner)
+  	//gitHubGraphQL(repo, owner)
 	fmt.Println(value1)
-	//fmt.Println(value2)
+	fmt.Println(value2)
 
 /*func githubFunc(url string) {
 	split := strings.Split(url, "/")
@@ -166,6 +166,7 @@ func github(url string, scoreObject *attribute, count int) {
 
 
 }*/
+}
 
 func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	split := strings.Split(url, "/")
@@ -209,9 +210,9 @@ func npmSource(npmObj *npmObject, count int) {
 
 }
 
-type PullRequests struct {
+/*type PullRequests struct {
 	TotalCount int `json:"total_count"`
-}
+}*/
 
 func githubPullReq(repoName string, scoreObject *attribute, url string) (value2 int) {
 	req, _ := http.NewRequest("GET", "https://api.github.com/search/issues?q=is:pr+repo:" + repoName, nil)
@@ -301,8 +302,8 @@ func licenseCompatability(license string) (compatible bool) {
 
 	return false
 
-	fmt.Print("number of contributors: ", numContributors)
-	fmt.Print("\nlicense: ", contributors["license"])
+	//fmt.Print("number of contributors: ", numContributors)
+	//fmt.Print("\nlicense: ", contributors["license"])
 }
 
 /*func gitHubRestAPI(repo string, owner string) {
