@@ -118,11 +118,13 @@ func github(url string, scoreObject *attribute, count int) {
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
 	print("Owner: ", owner, " Repo: ", repo, "\n")
-	//githubRestAPI
-	//githubGraphQL
-	value := githubSource(scoreObject, url, count)
+	value1 := githubSource(scoreObject, url, count)
+	var fullRepo string = owner + "/" + repo
+	value2 := githubPullReq(fullRepo, scoreObject, url)
+	//value3 := githubGraphQL
 	//intConv, _ := strconv.Atoi(string(value))
-	fmt.Println(value)
+	fmt.Println(value1)
+	fmt.Println(value2)
 }
 
 func npmjs(url string, scoreObject *attribute, count int) {
@@ -136,18 +138,8 @@ func npmjs(url string, scoreObject *attribute, count int) {
 
 func githubSource(scoreObject *attribute, url string, count int) (output []byte){
 
-	//command := exec.Command("python3", "cloner.py", url, strconv.Itoa(count))
+	//call python script that clones repo and pull number of commits
 	command := exec.Command("python3", "cloner.py", url, strconv.Itoa(count))
-	//output, err := command.Output()
-	
-	/*if err != nil{
-		fmt.Println(err.Error())
-		return
-	}*/
-	
-	//exec.Command("cd", "g" + strconv.Itoa(count)).Run()
-	//fmt.Println("g" + strconv.Itoa(count))
-	//command := exec.Command("cd", "/Users/Ben_Brown19/Desktop/school/ECE_461/461-Project/cloneDir/g" + strconv.Itoa(count), "&&", "git", "rev-list", "--all", "--count")
 	output, err := command.Output()
 
 	if err != nil{
@@ -157,6 +149,31 @@ func githubSource(scoreObject *attribute, url string, count int) (output []byte)
 	
 	return output
 
+}
+
+type PullRequests struct {
+	TotalCount int `json:"total_count"`
+}
+
+func githubPullReq(repoName string, scoreObject *attribute, url string) (value2 int) {
+	req, _ := http.NewRequest("GET", "https://api.github.com/search/issues?q=is:pr+repo:" + repoName, nil)
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+
+	defer res.Body.Close()
+
+	var pullRequests PullRequests
+	json.NewDecoder(res.Body).Decode(&pullRequests)
+
+	return pullRequests.TotalCount
+	//fmt.Printf("Number of pull requests in joelchiang2k/Linkr: %d\n", pullRequests.TotalCount)
 }
 
 func npmRestAPI(packageName string, scoreObject *attribute) {
