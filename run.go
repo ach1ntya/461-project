@@ -30,8 +30,10 @@ type attribute struct{
 }
 
 type gitObject struct{
-	numCommits float32
-	numPullRequests float32
+	//numCommits float32
+	numCommits []byte
+	//numPullRequests float32
+	numPullRequests int
 	graphQL float32
 }
 
@@ -128,9 +130,9 @@ func file(filename string) {
 
 		// call sub function to score each line/project
 		if strings.Contains(line, "github.com") {
-			//var gitObj gitObject
+			var gitObj gitObject
 			urlCount += 1
-			githubFunc(line, scoreObject, urlCount)
+			githubFunc(line, &gitObj, urlCount)
 		} else if strings.Contains(line, "npmjs.com") {
 			var npmObj npmObject
 			urlCount += 1
@@ -142,19 +144,19 @@ func file(filename string) {
 }
 
 
-func githubFunc(url string, scoreObject *attribute, count int) {
+func githubFunc(url string, gitObj *gitObject, count int) {
 	split := strings.Split(url, "/")
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
 	print("Owner: ", owner, " Repo: ", repo, "\n")
-	value1 := githubSource(scoreObject, url, count)
+	gitObj.numCommits = githubSource(url, count)
 	var fullRepo string = owner + "/" + repo
-	value2 := githubPullReq(fullRepo, scoreObject, url)
+	gitObj.numPullRequests = githubPullReq(fullRepo, url)
 	//value3 := githubGraphQL
 	//intConv, _ := strconv.Atoi(string(value))
   	//gitHubGraphQL(repo, owner)
-	fmt.Println(value1)
-	fmt.Println(value2)
+	fmt.Println("git num commits: ", gitObj.numCommits)
+	fmt.Println("git num PR: ", gitObj.numPullRequests)
 
 /*func githubFunc(url string) {
 	split := strings.Split(url, "/")
@@ -179,7 +181,7 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	fmt.Println(npmObj.numCommits)
 }
 
-func githubSource(scoreObject *attribute, url string, count int) (output []byte){
+func githubSource(url string, count int) (output []byte){
 
 	//call python script that clones repo and pull number of commits
 	command := exec.Command("python3", "cloner.py", url, strconv.Itoa(count))
@@ -214,7 +216,7 @@ func npmSource(npmObj *npmObject, count int) {
 	TotalCount int `json:"total_count"`
 }*/
 
-func githubPullReq(repoName string, scoreObject *attribute, url string) (value2 int) {
+func githubPullReq(repoName string, url string) (value2 int) {
 	req, _ := http.NewRequest("GET", "https://api.github.com/search/issues?q=is:pr+repo:" + repoName, nil)
 	req.Header.Set("Accept", "application/vnd.github+json")
 
@@ -343,7 +345,12 @@ func numPullReq() {
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	client := &http.Client{}
-	res, _ := client.Do(req)
+	res, err := client.Do(req)
+
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
 
 	defer res.Body.Close()
 
