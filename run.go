@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -13,6 +14,9 @@ import (
 	"strconv"
 	"encoding/binary"
 	"math"
+	"github.com/google/go-github/v50/github"
+	"github.com/machinebox/graphql"
+	"golang.org/x/oauth2"
 )
 
 type attribute struct{
@@ -137,6 +141,7 @@ func file(filename string) {
 	}
 }
 
+
 func github(url string, scoreObject *attribute, count int) {
 	split := strings.Split(url, "/")
 	owner := split[len(split)-2]
@@ -147,9 +152,20 @@ func github(url string, scoreObject *attribute, count int) {
 	//value2 := githubPullReq(fullRepo, scoreObject, url)
 	//value3 := githubGraphQL
 	//intConv, _ := strconv.Atoi(string(value))
+  gitHubGraphQL(repo, owner)
 	fmt.Println(value1)
 	//fmt.Println(value2)
-}
+
+/*func githubFunc(url string) {
+	split := strings.Split(url, "/")
+	owner := split[len(split)-2]
+	repo := split[len(split)-1]
+	// print("Owner: ", owner, " Repo: ", repo, "\n")
+	gitHubGraphQL(repo, owner)
+	gitHubRestAPI(repo, owner)
+
+
+}*/
 
 func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	split := strings.Split(url, "/")
@@ -259,6 +275,7 @@ func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 
 
 	//output numContributors and license
+
 	fmt.Print("number of contributors: ", scoreObject.responsiveness)
 	fmt.Print("\nlicense: ", contributors["license"].(string))
 	//fmt.Print("\ngithub url: ", contributors["repository"].(map[string]interface{})["url"])
@@ -283,6 +300,109 @@ func licenseCompatability(license string) (compatible bool) {
 	}
 
 	return false
+
+	fmt.Print("number of contributors: ", numContributors)
+	fmt.Print("\nlicense: ", contributors["license"])
+}
+
+/*func gitHubRestAPI(repo string, owner string) {
+	apiKey := os.Getenv("GITHUB_API_KEY")
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: apiKey},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+	_, _, err := client.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	pullRequests, _, err := client.PullRequests.List(ctx, owner, repo, nil)
+	if err != nil {
+		fmt.Println("Error fetching pull requests:", err)
+		return
+	}
+
+	totalPullRequests := len(pullRequests)
+	fmt.Printf("Total pull requests: %d\n", totalPullRequests)
+
+	totalIssues, _, err := client.Issues.ListByRepo(ctx, owner, repo, nil)
+	fmt.Printf("Total issues: %d\n", len(totalIssues))
+}*/
+
+type PullRequests struct {
+	TotalCount int `json:"total_count"`
+}
+
+func numPullReq() {
+	url := "https://api.github.com/search/issues?q=is:pr+repo:joelchiang2k/Linkr" //change repo name OWNER/REPO
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	client := &http.Client{}
+	res, _ := client.Do(req)
+
+	defer res.Body.Close()
+
+	var pullRequests PullRequests
+	json.NewDecoder(res.Body).Decode(&pullRequests)
+
+	fmt.Printf("Number of pull requests in joelchiang2k/Linkr: %d\n", pullRequests.TotalCount)
+}
+
+func gitHubGraphQL(repoName string, owner string) {
+	client := graphql.NewClient("https://api.github.com/graphql")
+	req := graphql.NewRequest(`
+	query ($repoName: String!, $owner: String!) {
+		repository(name: $repoName, owner: $owner) {
+		  licenseInfo {
+			name
+		  }
+		  pullRequests {
+			totalCount
+		  }
+		  commitComments {
+			totalCount
+		  }
+		  releases {
+			totalCount
+		  }
+		  stargazerCount
+		  defaultBranchRef {
+			name
+			target {
+			  ... on Commit {
+				id
+				history(first: 0) {
+				  totalCount
+				}
+			  }
+			}
+		  }
+		}
+	  }  
+	`)
+	req.Var("repoName", repoName)
+	req.Var("owner", owner)
+	apiKey := os.Getenv("GITHUB_API_KEY")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	var response map[string]interface{}
+	err := client.Run(context.Background(), req, &response)
+	if err != nil {
+		panic(err)
+	}
+	repository := response["repository"].(map[string]interface{})
+	commitCount := int(repository["defaultBranchRef"].(map[string]interface{})["target"].(map[string]interface{})["history"].(map[string]interface{})["totalCount"].(float64))
+	pullRequests := int(repository["pullRequests"].(map[string]interface{})["totalCount"].(float64))
+	releases := int(repository["releases"].(map[string]interface{})["totalCount"].(float64))
+	stargazerCount := int(repository["stargazerCount"].(float64))
+	fmt.Println("Commit Count: ", commitCount)
+	fmt.Println("Pull Requests: ", pullRequests)
+	fmt.Println("Releases: ", releases)
+	fmt.Println("Stargazers: ", stargazerCount)
+
 }
 
 func main() {
@@ -299,5 +419,4 @@ func main() {
 		help()
 		os.Exit(1)
 	}
-
 }
