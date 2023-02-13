@@ -15,9 +15,9 @@ import (
 	"strconv"
 	"strings"
 
-	//"github.com/google/go-github/v50/github"
+	// "github.com/google/go-github/v50/github"
 	"github.com/machinebox/graphql"
-	//"golang.org/x/oauth2"
+// 	"golang.org/x/oauth2"
 )
 
 type attribute struct {
@@ -274,9 +274,6 @@ func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 	scoreObject.responsiveness = float32(numContributors)
 	license := contributors["license"]
 	scoreObject.license = license.(string)
-	//fmt.Print(scoreObject.responsiveness)
-
-	//output numContributors and license
 
 	fmt.Print("number of contributors: ", scoreObject.responsiveness)
 	fmt.Print("\nlicense: ", contributors["license"].(string))
@@ -289,7 +286,6 @@ func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 	npmObj.gitRepo = owner + "/" + repo
 	//fmt.Print("\ngithub url: ", contributors["repository"].(map[string]interface{})["url"])
 	fmt.Print("\n")
-
 }
 
 func licenseCompatability(license string) (compatible bool) {
@@ -300,11 +296,7 @@ func licenseCompatability(license string) (compatible bool) {
 			return true
 		}
 	}
-
 	return false
-
-	//fmt.Print("number of contributors: ", numContributors)
-	//fmt.Print("\nlicense: ", contributors["license"])
 }
 
 /*func gitHubRestAPI(repo string, owner string) {
@@ -363,8 +355,11 @@ func gitHubGraphQL(repoName string, owner string) {
 			  }
 			}
 		  }
+		  issues(states: CLOSED) {
+			totalCount
+		  }
 		}
-	  }  
+	  }
 	`)
 	req.Var("repoName", repoName)
 	req.Var("owner", owner)
@@ -376,6 +371,15 @@ func gitHubGraphQL(repoName string, owner string) {
 		panic(err)
 	}
 	repository := response["repository"].(map[string]interface{})
+	if repository["licenseInfo"] == nil {
+		npmLicense(repoName)
+	} else if repository["licenseInfo"].(map[string]interface{})["name"] == "Other" {
+		npmLicense(repoName)
+	} else {
+		licenseInfo := repository["licenseInfo"].(map[string]interface{})["name"].(string)
+		fmt.Println("License: ", licenseInfo)
+	}
+	numIssues := int(repository["issues"].(map[string]interface{})["totalCount"].(float64))
 	commitCount := int(repository["defaultBranchRef"].(map[string]interface{})["target"].(map[string]interface{})["history"].(map[string]interface{})["totalCount"].(float64))
 	pullRequests := int(repository["pullRequests"].(map[string]interface{})["totalCount"].(float64))
 	releases := int(repository["releases"].(map[string]interface{})["totalCount"].(float64))
@@ -384,7 +388,33 @@ func gitHubGraphQL(repoName string, owner string) {
 	fmt.Println("Pull Requests: ", pullRequests)
 	fmt.Println("Releases: ", releases)
 	fmt.Println("Stargazers: ", stargazerCount)
+	fmt.Println("Issues: ", numIssues)
+}
 
+func npmLicense(packageName string) {
+	if strings.HasSuffix(packageName, "_npm") {
+		packageName = strings.TrimSuffix(packageName, "_npm")
+	}
+	url := "https://registry.npmjs.org/" + packageName
+	response, err := http.Get(url)
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+	responseData, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+	array := make(map[string]interface{})
+	err = json.Unmarshal(responseData, &array)
+
+	if err != nil {
+		fmt.Print("failed to decode api response: %s", err)
+		return
+	}
+	fmt.Print("license: ", array["license"], "\n")
 }
 
 func main() {
