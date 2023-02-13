@@ -421,7 +421,7 @@ func npmLicense(packageName string) {
 	err = json.Unmarshal(responseData, &array)
 
 	if err != nil {
-		fmt.Print("failed to decode api response: %s", err)
+		fmt.Print("failed to decode api response: ", err)
 		return
 	}
 	fmt.Print("license: ", array["license"], "\n")
