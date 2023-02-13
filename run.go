@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"context"
-	"encoding/binary"
+	//"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math"
+	//"math"
 	"net/http"
 	"os"
 	"os/exec"
@@ -44,7 +44,7 @@ type gitObject struct {
 }
 
 type npmObject struct {
-	numCommits     float32
+	numCommits     string
 	numMaintainers float32
 	graphQL		   float32
 	gitRepo        string
@@ -227,9 +227,9 @@ func npmSource(npmObj *npmObject, count int) {
 		fmt.Println(err.Error())
 		return
 	}
-	b := binary.BigEndian.Uint32(output)
-	float := math.Float32frombits(b)
-	npmObj.numCommits = float
+	/*b := binary.BigEndian.Uint32(output)
+	float := math.Float32frombits(b)*/
+	npmObj.numCommits = strings.TrimSuffix(string(output), "\n")
 
 }
 
@@ -295,7 +295,7 @@ func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 	license := contributors["license"]
 	npmObj.license = license.(string)
 
-	fmt.Print("number of contributors: ", scoreObject.responsiveness)
+	//fmt.Print("number of contributors: ", scoreObject.responsiveness)
 	fmt.Print("\nlicense: ", contributors["license"].(string))
 	//fmt.Print("\ngithub url: ", contributors["repository"].(map[string]interface{})["url"])
 	split := strings.Split(contributors["repository"].(map[string]interface{})["url"].(string), "/")
