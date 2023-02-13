@@ -46,6 +46,7 @@ type gitObject struct {
 type npmObject struct {
 	numCommits     string
 	numMaintainers float32
+	numBranches    string
 	graphQL		   float32
 	gitRepo        string
 	license        string
@@ -199,6 +200,8 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	} else{
 		scoreObject.license = 0
 	}
+	localBranchCount(count, npmObj)
+	fmt.Println("numBranches npm ", npmObj.numBranches)
 	//calc score/output json
 }
 
@@ -434,8 +437,8 @@ func npmLicense(packageName string) {
 	fmt.Print("license: ", array["license"], "\n")
 }
 
-func localBranchCount(count int) {
-	FolderLoc := "~/461-Project/cloneDir/" + strconv.Itoa(count)
+func localBranchCount(count int, npmObj *npmObject) {
+	FolderLoc := "~/cloneDir/" + strconv.Itoa(count)
 	// Git cmd for list of all repos
 	out, err := exec.Command("git", "-C", FolderLoc, "branch", "-a").Output()
 	if err != nil {
@@ -445,7 +448,8 @@ func localBranchCount(count int) {
 
 	// Split output onto new lines and return (len - extra versions of origin/head)
 	branches := strings.Split(string(out), "\n")
-	fmt.Printf("%d", len(branches)-3)
+	//fmt.Printf("%d", len(branches)-3)
+	npmObj.numBranches = string(len(branches) - 3)
 }
 
 func main() {
