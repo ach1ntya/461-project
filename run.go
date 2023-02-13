@@ -160,6 +160,7 @@ func githubFunc(url string, gitObj *gitObject, count int) {
 	//gitHubGraphQL(repo, owner)
 	fmt.Println("git num commits: ", gitObj.numCommits)
 	fmt.Println("git num PR: ", gitObj.numPullRequests)
+	//scoreObject.license = licenseCompatability(gitO)
 
 	/*func githubFunc(url string) {
 		split := strings.Split(url, "/")
@@ -183,6 +184,12 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	//fmt.Println(npmObj.gitRepo)
 	fmt.Println(npmObj.numCommits)
 	fmt.Println(npmObj.numMaintainers)
+	if(licenseCompatability(npmObj.license) == true){
+		scoreObject.license = "compatible"
+	} else{
+		scoreObject.license = "non-compatible"
+	}
+	//calc score/output json
 }
 
 func githubSource(url string, count int) (output []byte) {
