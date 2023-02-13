@@ -37,11 +37,10 @@ type gitObject struct {
 	numPullRequests int
 
 	// graphQL         float32
-	license string
+	license    string
 	stargazers int
-	issues int
-	releases int
-
+	issues     int
+	releases   int
 }
 
 type npmObject struct {
@@ -49,7 +48,7 @@ type npmObject struct {
 	numMaintainers float32
 	graphQL        float32
 	gitRepo        string
-	license		   string
+	license        string
 }
 
 func newURL(url string) *attribute {
@@ -173,7 +172,6 @@ func githubFunc(url string, gitObj *gitObject, count int) {
 	fmt.Println("git license: ", gitObj.license)
 	//scoreObject.license = licenseCompatability(gitO)
 
-
 	/*func githubFunc(url string) {
 		split := strings.Split(url, "/")
 		owner := split[len(split)-2]
@@ -195,9 +193,9 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	//fmt.Println(npmObj.gitRepo)
 	fmt.Println(npmObj.numCommits)
 	fmt.Println(npmObj.numMaintainers)
-	if(licenseCompatability(npmObj.license) == true){
+	if licenseCompatability(npmObj.license) == true {
 		scoreObject.license = "compatible"
-	} else{
+	} else {
 		scoreObject.license = "non-compatible"
 	}
 	//calc score/output json
@@ -384,7 +382,7 @@ func gitHubGraphQL(repoName string, owner string) (issueCount int, releaseCount 
 	`)
 	req.Var("repoName", repoName)
 	req.Var("owner", owner)
-	apiKey := os.Getenv("GITHUB_API_KEY")
+	apiKey := os.Getenv("GITHUB_TOKEN")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	var response map[string]interface{}
 	err := client.Run(context.Background(), req, &response)
