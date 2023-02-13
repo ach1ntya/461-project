@@ -42,7 +42,7 @@ type gitObject struct {
 type npmObject struct {
 	numCommits     float32
 	numMaintainers float32
-	graphQL        float32
+	graphQL		   float32
 	gitRepo        string
 	license		   string
 }
@@ -427,8 +427,8 @@ func npmLicense(packageName string) {
 	fmt.Print("license: ", array["license"], "\n")
 }
 
-func LocalBranchCount(count int) {
-	FolderLoc := "/project-name/cloneDir/" + strconv.Itoa(count)
+func localBranchCount(count int) {
+	FolderLoc := "~/461-Project/cloneDir/" + strconv.Itoa(count)
 	// Git cmd for list of all repos
 	out, err := exec.Command("git", "-C", FolderLoc, "branch", "-a").Output()
 	if err != nil {
