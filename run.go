@@ -27,12 +27,12 @@ type attribute struct {
 	correctness    float32
 	busFactor      float32
 	responsiveness float32
-	license        string
+	license        int
 }
 
 type gitObject struct {
 	// numCommits int
-	numCommits []byte
+	numCommits string 
 	//numPullRequests float32
 	numPullRequests int
 
@@ -157,7 +157,8 @@ func githubFunc(url string, gitObj *gitObject, count int) {
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
 	print("Owner: ", owner, " Repo: ", repo, "\n")
-	gitObj.numCommits = githubSource(url, count)
+	gitObj.numCommits = strings.TrimSuffix(string(githubSource(url, count)), "\n")
+	
 	var fullRepo string = owner + "/" + repo
 	gitObj.numPullRequests = githubPullReq(fullRepo)
 	//value3 := githubGraphQL
@@ -166,11 +167,11 @@ func githubFunc(url string, gitObj *gitObject, count int) {
 	fmt.Println("git num commits: ", gitObj.numCommits)
 	fmt.Println("git num PR: ", gitObj.numPullRequests)
 
-	gitObj.issues, gitObj.releases, gitObj.stargazers, gitObj.license = gitHubGraphQL(repo, owner)
+	/*gitObj.issues, gitObj.releases, gitObj.stargazers, gitObj.license = gitHubGraphQL(repo, owner)
 	fmt.Println("git issues: ", gitObj.issues)
 	fmt.Println("git releases: ", gitObj.releases)
 	fmt.Println("git stargazers: ", gitObj.stargazers)
-	fmt.Println("git license: ", gitObj.license)
+	fmt.Println("git license: ", gitObj.license)*/
 	//scoreObject.license = licenseCompatability(gitO)
 
 
@@ -196,9 +197,9 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	fmt.Println(npmObj.numCommits)
 	fmt.Println(npmObj.numMaintainers)
 	if(licenseCompatability(npmObj.license) == true){
-		scoreObject.license = "compatible"
+		scoreObject.license = 1
 	} else{
-		scoreObject.license = "non-compatible"
+		scoreObject.license = 0
 	}
 	//calc score/output json
 }
@@ -385,6 +386,7 @@ func gitHubGraphQL(repoName string, owner string) (issueCount int, releaseCount 
 	req.Var("repoName", repoName)
 	req.Var("owner", owner)
 	apiKey := os.Getenv("GITHUB_API_KEY")
+	//apiKey := os.Getenv("GITHUB_TOKEN")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	var response map[string]interface{}
 	err := client.Run(context.Background(), req, &response)
