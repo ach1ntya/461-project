@@ -3,10 +3,12 @@ package main
 import (
 	"bufio"
 	"context"
+
 	//"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+
 	//"math"
 	"net/http"
 	"os"
@@ -32,7 +34,7 @@ type attribute struct {
 
 type gitObject struct {
 	// numCommits int
-	numCommits string 
+	numCommits string
 	//numPullRequests float32
 	numPullRequests int
 
@@ -47,7 +49,7 @@ type npmObject struct {
 	numCommits     string
 	numMaintainers float32
 	numBranches    string
-	graphQL		   float32
+	graphQL        float32
 	gitRepo        string
 	license        string
 }
@@ -152,13 +154,18 @@ func file(filename string) {
 	}
 }
 
-func githubFunc(url string, gitObj *gitObject, count int) {
+type Row struct {
+	Gitcommit string
+	GitPR     int
+}
+
+func githubFunc(url string, gitObj *gitObject, count int) (string, int) {
 	split := strings.Split(url, "/")
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
 	print("Owner: ", owner, " Repo: ", repo, "\n")
 	gitObj.numCommits = strings.TrimSuffix(string(githubSource(url, count)), "\n")
-	
+
 	var fullRepo string = owner + "/" + repo
 	gitObj.numPullRequests = githubPullReq(fullRepo)
 	//value3 := githubGraphQL
@@ -166,6 +173,8 @@ func githubFunc(url string, gitObj *gitObject, count int) {
 	//gitHubGraphQL(repo, owner)
 	fmt.Println("git num commits: ", gitObj.numCommits)
 	fmt.Println("git num PR: ", gitObj.numPullRequests)
+
+	return gitObj.numCommits, gitObj.numPullRequests
 
 	/*gitObj.issues, gitObj.releases, gitObj.stargazers, gitObj.license = gitHubGraphQL(repo, owner)
 	fmt.Println("git issues: ", gitObj.issues)
@@ -195,9 +204,9 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	//fmt.Println(npmObj.gitRepo)
 	fmt.Println(npmObj.numCommits)
 	fmt.Println(npmObj.numMaintainers)
-	if(licenseCompatability(npmObj.license) == true){
+	if licenseCompatability(npmObj.license) == true {
 		scoreObject.license = 1
-	} else{
+	} else {
 		scoreObject.license = 0
 	}
 	localBranchCount(count, npmObj)
@@ -452,6 +461,51 @@ func localBranchCount(count int, npmObj *npmObject) {
 	npmObj.numBranches = string(len(branches) - 3)
 }
 
+func WriteNDJSON(rows []Row, filePath string) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	for _, row := range rows {
+		if err := encoder.Encode(row); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func openJSON(filename string) {
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Println("Error: ", err)
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		//fmt.Println(line)
+		var urlCount int = 0
+		var gitObj gitObject
+		commits, gitPR := githubFunc(line, &gitObj, urlCount)
+		rows := []Row{
+			{
+				Gitcommit: commits,
+				GitPR:     gitPR,
+			},
+		}
+
+		err := WriteNDJSON(rows, "output.ndjson")
+		if err != nil {
+			fmt.Println("Error writing NDJSON:", err)
+		}
+	}
+}
+
 func main() {
 	args := os.Args[1:]
 	if args[0] == "install" {
@@ -466,4 +520,5 @@ func main() {
 		help()
 		os.Exit(1)
 	}
+
 }
