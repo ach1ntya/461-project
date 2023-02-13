@@ -36,6 +36,7 @@ type gitObject struct {
 	//numPullRequests float32
 	numPullRequests int
 	graphQL         float32
+	license			string
 }
 
 type npmObject struct {
@@ -43,6 +44,7 @@ type npmObject struct {
 	numMaintainers float32
 	graphQL        float32
 	gitRepo        string
+	license		   string
 }
 
 func newURL(url string) *attribute {
@@ -178,8 +180,9 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	npmRestAPI(packageName, scoreObject, npmObj)
 	//npmGraphQL
 	npmSource(npmObj, count)
-	fmt.Println(npmObj.gitRepo)
+	//fmt.Println(npmObj.gitRepo)
 	fmt.Println(npmObj.numCommits)
+	fmt.Println(npmObj.numMaintainers)
 }
 
 func githubSource(url string, count int) (output []byte) {
@@ -271,9 +274,9 @@ func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 	//stores list of maintainers into array object
 	array := contributors["maintainers"].([]interface{})
 	numContributors := len(array) //number of active maintainers for package
-	scoreObject.responsiveness = float32(numContributors)
+	npmObj.numMaintainers = float32(numContributors)
 	license := contributors["license"]
-	scoreObject.license = license.(string)
+	npmObj.license = license.(string)
 
 	fmt.Print("number of contributors: ", scoreObject.responsiveness)
 	fmt.Print("\nlicense: ", contributors["license"].(string))
