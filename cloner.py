@@ -6,8 +6,8 @@ from git import Repo
 
 def clone_repo(url, dir_path):
 
-    Repo.clone_from(str(url), "/Users/Ben_Brown19/Desktop/school/ECE_461/461-Project/cloneDir/" + str(dir_path))
-    subp = subprocess.run(["git rev-list --all --count"], stdout=subprocess.PIPE, text=True, shell=True, cwd= "/Users/Ben_Brown19/Desktop/school/ECE_461/461-Project/cloneDir/" + str(dir_path))
+    Repo.clone_from(str(url), "/home/shay/a/dkholode/Desktop/461-project/clonedir" + str(dir_path))
+    subp = subprocess.run(["git rev-list --all --count"], stdout=subprocess.PIPE, text=True, shell=True, cwd= "/home/shay/a/dkholode/Desktop/461-project/clonedir" + str(dir_path))
     print(subp.stdout)
     
 

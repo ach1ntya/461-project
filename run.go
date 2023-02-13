@@ -438,7 +438,11 @@ func npmLicense(packageName string) {
 }
 
 func localBranchCount(count int, npmObj *npmObject) {
-	FolderLoc := "~/cloneDir/" + strconv.Itoa(count)
+	FolderLoc, err:=  filepath.Abs("clonedir" + strconv.Itoa(count))
+	if err != nil {
+		fmt.Println("Filepath for folder not found", err)
+		return
+	}
 	// Git cmd for list of all repos
 	out, err := exec.Command("git", "-C", FolderLoc, "branch", "-a").Output()
 	if err != nil {
@@ -448,8 +452,8 @@ func localBranchCount(count int, npmObj *npmObject) {
 
 	// Split output onto new lines and return (len - extra versions of origin/head)
 	branches := strings.Split(string(out), "\n")
-	//fmt.Printf("%d", len(branches)-3)
-	npmObj.numBranches = string(len(branches) - 3)
+	//fmt.Printf("HERE HERE, %d", len(branches)-3)
+	npmObj.numBranches = strconv.Itoa(len(branches) - 3)
 }
 
 func main() {
