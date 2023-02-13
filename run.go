@@ -37,11 +37,10 @@ type gitObject struct {
 	numPullRequests int
 
 	// graphQL         float32
-	license string
+	license    string
 	stargazers int
-	issues int
-	releases int
-
+	issues     int
+	releases   int
 }
 
 type npmObject struct {
@@ -49,7 +48,7 @@ type npmObject struct {
 	numMaintainers float32
 	graphQL		   float32
 	gitRepo        string
-	license		   string
+	license        string
 }
 
 func newURL(url string) *attribute {
@@ -173,7 +172,6 @@ func githubFunc(url string, gitObj *gitObject, count int) {
 	fmt.Println("git stargazers: ", gitObj.stargazers)
 	fmt.Println("git license: ", gitObj.license)*/
 	//scoreObject.license = licenseCompatability(gitO)
-
 
 	/*func githubFunc(url string) {
 		split := strings.Split(url, "/")
