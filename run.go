@@ -31,11 +31,15 @@ type attribute struct {
 }
 
 type gitObject struct {
-	//numCommits float32
+	// numCommits int
 	numCommits []byte
 	//numPullRequests float32
 	numPullRequests int
-	graphQL         float32
+	// graphQL         float32
+	license string
+	stargazers int
+	issues int
+	releases int
 }
 
 type npmObject struct {
@@ -158,6 +162,11 @@ func githubFunc(url string, gitObj *gitObject, count int) {
 	//gitHubGraphQL(repo, owner)
 	fmt.Println("git num commits: ", gitObj.numCommits)
 	fmt.Println("git num PR: ", gitObj.numPullRequests)
+	gitObj.issues, gitObj.releases, gitObj.stargazers, gitObj.license = gitHubGraphQL(repo, owner)
+	fmt.Println("git issues: ", gitObj.issues)
+	fmt.Println("git releases: ", gitObj.releases)
+	fmt.Println("git stargazers: ", gitObj.stargazers)
+	fmt.Println("git license: ", gitObj.license)
 
 	/*func githubFunc(url string) {
 		split := strings.Split(url, "/")
@@ -176,7 +185,6 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	packageName := split[len(split)-1]
 	print("Package: ", packageName, "\n")
 	npmRestAPI(packageName, scoreObject, npmObj)
-	//npmGraphQL
 	npmSource(npmObj, count)
 	fmt.Println(npmObj.gitRepo)
 	fmt.Println(npmObj.numCommits)
@@ -326,7 +334,7 @@ func licenseCompatability(license string) (compatible bool) {
 	fmt.Printf("Total issues: %d\n", len(totalIssues))
 }*/
 
-func gitHubGraphQL(repoName string, owner string) {
+func gitHubGraphQL(repoName string, owner string) (issueCount int, releaseCount int, starCount int, license string) {
 	client := graphql.NewClient("https://api.github.com/graphql")
 	req := graphql.NewRequest(`
 	query ($repoName: String!, $owner: String!) {
@@ -380,15 +388,11 @@ func gitHubGraphQL(repoName string, owner string) {
 		fmt.Println("License: ", licenseInfo)
 	}
 	numIssues := int(repository["issues"].(map[string]interface{})["totalCount"].(float64))
-	commitCount := int(repository["defaultBranchRef"].(map[string]interface{})["target"].(map[string]interface{})["history"].(map[string]interface{})["totalCount"].(float64))
-	pullRequests := int(repository["pullRequests"].(map[string]interface{})["totalCount"].(float64))
+	//  commitCount := int(repository["defaultBranchRef"].(map[string]interface{})["target"].(map[string]interface{})["history"].(map[string]interface{})["totalCount"].(float64))
+	// pullRequests := int(repository["pullRequests"].(map[string]interface{})["totalCount"].(float64))
 	releases := int(repository["releases"].(map[string]interface{})["totalCount"].(float64))
 	stargazerCount := int(repository["stargazerCount"].(float64))
-	fmt.Println("Commit Count: ", commitCount)
-	fmt.Println("Pull Requests: ", pullRequests)
-	fmt.Println("Releases: ", releases)
-	fmt.Println("Stargazers: ", stargazerCount)
-	fmt.Println("Issues: ", numIssues)
+	return numIssues, releases, stargazerCount, license
 }
 
 func npmLicense(packageName string) {
