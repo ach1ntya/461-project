@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"context"
-	"encoding/binary"
+	//"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math"
+	//"math"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,9 +15,9 @@ import (
 	"strconv"
 	"strings"
 
-	//"github.com/google/go-github/v50/github"
+	// "github.com/google/go-github/v50/github"
 	"github.com/machinebox/graphql"
-	//"golang.org/x/oauth2"
+	// "golang.org/x/oauth2"
 )
 
 type attribute struct {
@@ -27,22 +27,29 @@ type attribute struct {
 	correctness    float32
 	busFactor      float32
 	responsiveness float32
-	license        string
+	license        int
 }
 
 type gitObject struct {
-	//numCommits float32
-	numCommits []byte
+	// numCommits int
+	numCommits string 
 	//numPullRequests float32
 	numPullRequests int
-	graphQL         float32
+
+	// graphQL         float32
+	license    string
+	stargazers int
+	issues     int
+	releases   int
 }
 
 type npmObject struct {
-	numCommits     float32
+	numCommits     string
 	numMaintainers float32
-	graphQL        float32
+	numBranches    string
+	graphQL		   float32
 	gitRepo        string
+	license        string
 }
 
 func newURL(url string) *attribute {
@@ -150,7 +157,8 @@ func githubFunc(url string, gitObj *gitObject, count int) {
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
 	print("Owner: ", owner, " Repo: ", repo, "\n")
-	gitObj.numCommits = githubSource(url, count)
+	gitObj.numCommits = strings.TrimSuffix(string(githubSource(url, count)), "\n")
+	
 	var fullRepo string = owner + "/" + repo
 	gitObj.numPullRequests = githubPullReq(fullRepo)
 	//value3 := githubGraphQL
@@ -158,6 +166,13 @@ func githubFunc(url string, gitObj *gitObject, count int) {
 	//gitHubGraphQL(repo, owner)
 	fmt.Println("git num commits: ", gitObj.numCommits)
 	fmt.Println("git num PR: ", gitObj.numPullRequests)
+
+	/*gitObj.issues, gitObj.releases, gitObj.stargazers, gitObj.license = gitHubGraphQL(repo, owner)
+	fmt.Println("git issues: ", gitObj.issues)
+	fmt.Println("git releases: ", gitObj.releases)
+	fmt.Println("git stargazers: ", gitObj.stargazers)
+	fmt.Println("git license: ", gitObj.license)*/
+	//scoreObject.license = licenseCompatability(gitO)
 
 	/*func githubFunc(url string) {
 		split := strings.Split(url, "/")
@@ -176,10 +191,18 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	packageName := split[len(split)-1]
 	print("Package: ", packageName, "\n")
 	npmRestAPI(packageName, scoreObject, npmObj)
-	//npmGraphQL
 	npmSource(npmObj, count)
-	fmt.Println(npmObj.gitRepo)
+	//fmt.Println(npmObj.gitRepo)
 	fmt.Println(npmObj.numCommits)
+	fmt.Println(npmObj.numMaintainers)
+	if(licenseCompatability(npmObj.license) == true){
+		scoreObject.license = 1
+	} else{
+		scoreObject.license = 0
+	}
+	localBranchCount(count, npmObj)
+	fmt.Println("numBranches npm ", npmObj.numBranches)
+	//calc score/output json
 }
 
 func githubSource(url string, count int) (output []byte) {
@@ -207,9 +230,9 @@ func npmSource(npmObj *npmObject, count int) {
 		fmt.Println(err.Error())
 		return
 	}
-	b := binary.BigEndian.Uint32(output)
-	float := math.Float32frombits(b)
-	npmObj.numCommits = float
+	/*b := binary.BigEndian.Uint32(output)
+	float := math.Float32frombits(b)*/
+	npmObj.numCommits = strings.TrimSuffix(string(output), "\n")
 
 }
 
@@ -271,14 +294,11 @@ func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 	//stores list of maintainers into array object
 	array := contributors["maintainers"].([]interface{})
 	numContributors := len(array) //number of active maintainers for package
-	scoreObject.responsiveness = float32(numContributors)
+	npmObj.numMaintainers = float32(numContributors)
 	license := contributors["license"]
-	scoreObject.license = license.(string)
-	//fmt.Print(scoreObject.responsiveness)
+	npmObj.license = license.(string)
 
-	//output numContributors and license
-
-	fmt.Print("number of contributors: ", scoreObject.responsiveness)
+	//fmt.Print("number of contributors: ", scoreObject.responsiveness)
 	fmt.Print("\nlicense: ", contributors["license"].(string))
 	//fmt.Print("\ngithub url: ", contributors["repository"].(map[string]interface{})["url"])
 	split := strings.Split(contributors["repository"].(map[string]interface{})["url"].(string), "/")
@@ -289,7 +309,6 @@ func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 	npmObj.gitRepo = owner + "/" + repo
 	//fmt.Print("\ngithub url: ", contributors["repository"].(map[string]interface{})["url"])
 	fmt.Print("\n")
-
 }
 
 func licenseCompatability(license string) (compatible bool) {
@@ -300,11 +319,7 @@ func licenseCompatability(license string) (compatible bool) {
 			return true
 		}
 	}
-
 	return false
-
-	//fmt.Print("number of contributors: ", numContributors)
-	//fmt.Print("\nlicense: ", contributors["license"])
 }
 
 /*func gitHubRestAPI(repo string, owner string) {
@@ -334,7 +349,7 @@ func licenseCompatability(license string) (compatible bool) {
 	fmt.Printf("Total issues: %d\n", len(totalIssues))
 }*/
 
-func gitHubGraphQL(repoName string, owner string) {
+func gitHubGraphQL(repoName string, owner string) (issueCount int, releaseCount int, starCount int, license string) {
 	client := graphql.NewClient("https://api.github.com/graphql")
 	req := graphql.NewRequest(`
 	query ($repoName: String!, $owner: String!) {
@@ -363,12 +378,16 @@ func gitHubGraphQL(repoName string, owner string) {
 			  }
 			}
 		  }
+		  issues(states: CLOSED) {
+			totalCount
+		  }
 		}
-	  }  
+	  }
 	`)
 	req.Var("repoName", repoName)
 	req.Var("owner", owner)
 	apiKey := os.Getenv("GITHUB_API_KEY")
+	//apiKey := os.Getenv("GITHUB_TOKEN")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	var response map[string]interface{}
 	err := client.Run(context.Background(), req, &response)
@@ -376,15 +395,61 @@ func gitHubGraphQL(repoName string, owner string) {
 		panic(err)
 	}
 	repository := response["repository"].(map[string]interface{})
-	commitCount := int(repository["defaultBranchRef"].(map[string]interface{})["target"].(map[string]interface{})["history"].(map[string]interface{})["totalCount"].(float64))
-	pullRequests := int(repository["pullRequests"].(map[string]interface{})["totalCount"].(float64))
+	if repository["licenseInfo"] == nil {
+		npmLicense(repoName)
+	} else if repository["licenseInfo"].(map[string]interface{})["name"] == "Other" {
+		npmLicense(repoName)
+	} else {
+		licenseInfo := repository["licenseInfo"].(map[string]interface{})["name"].(string)
+		fmt.Println("License: ", licenseInfo)
+	}
+	numIssues := int(repository["issues"].(map[string]interface{})["totalCount"].(float64))
+	//  commitCount := int(repository["defaultBranchRef"].(map[string]interface{})["target"].(map[string]interface{})["history"].(map[string]interface{})["totalCount"].(float64))
+	// pullRequests := int(repository["pullRequests"].(map[string]interface{})["totalCount"].(float64))
 	releases := int(repository["releases"].(map[string]interface{})["totalCount"].(float64))
 	stargazerCount := int(repository["stargazerCount"].(float64))
-	fmt.Println("Commit Count: ", commitCount)
-	fmt.Println("Pull Requests: ", pullRequests)
-	fmt.Println("Releases: ", releases)
-	fmt.Println("Stargazers: ", stargazerCount)
+	return numIssues, releases, stargazerCount, license
+}
 
+func npmLicense(packageName string) {
+	if strings.HasSuffix(packageName, "_npm") {
+		packageName = strings.TrimSuffix(packageName, "_npm")
+	}
+	url := "https://registry.npmjs.org/" + packageName
+	response, err := http.Get(url)
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+	responseData, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+	array := make(map[string]interface{})
+	err = json.Unmarshal(responseData, &array)
+
+	if err != nil {
+		fmt.Print("failed to decode api response: ", err)
+		return
+	}
+	fmt.Print("license: ", array["license"], "\n")
+}
+
+func localBranchCount(count int, npmObj *npmObject) {
+	FolderLoc := "~/cloneDir/" + strconv.Itoa(count)
+	// Git cmd for list of all repos
+	out, err := exec.Command("git", "-C", FolderLoc, "branch", "-a").Output()
+	if err != nil {
+		fmt.Println("Error running git command:", err)
+		return
+	}
+
+	// Split output onto new lines and return (len - extra versions of origin/head)
+	branches := strings.Split(string(out), "\n")
+	//fmt.Printf("%d", len(branches)-3)
+	npmObj.numBranches = string(len(branches) - 3)
 }
 
 func main() {
