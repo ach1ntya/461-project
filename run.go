@@ -17,7 +17,7 @@ import (
 
 	// "github.com/google/go-github/v50/github"
 	"github.com/machinebox/graphql"
-// 	"golang.org/x/oauth2"
+	// "golang.org/x/oauth2"
 )
 
 type attribute struct {
@@ -425,6 +425,20 @@ func npmLicense(packageName string) {
 		return
 	}
 	fmt.Print("license: ", array["license"], "\n")
+}
+
+func LocalBranchCount(count int) {
+	FolderLoc := "/project-name/cloneDir/" + strconv.Itoa(count)
+	// Git cmd for list of all repos
+	out, err := exec.Command("git", "-C", FolderLoc, "branch", "-a").Output()
+	if err != nil {
+		fmt.Println("Error running git command:", err)
+		return
+	}
+
+	// Split output onto new lines and return (len - extra versions of origin/head)
+	branches := strings.Split(string(out), "\n")
+	fmt.Printf("%d", len(branches)-3)
 }
 
 func main() {
