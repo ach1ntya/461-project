@@ -167,6 +167,13 @@ func githubFunc(url string, gitObj *gitObject, count int) {
 	fmt.Println("git num commits: ", gitObj.numCommits)
 	fmt.Println("git num PR: ", gitObj.numPullRequests)
 
+	//remove recently created directory after info is pulled
+	command2 := exec.Command("rm", "-rf", "clonedir"+strconv.Itoa(count))
+
+	if err := command2.Run(); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 	/*gitObj.issues, gitObj.releases, gitObj.stargazers, gitObj.license = gitHubGraphQL(repo, owner)
 	fmt.Println("git issues: ", gitObj.issues)
 	fmt.Println("git releases: ", gitObj.releases)
@@ -193,8 +200,8 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	npmRestAPI(packageName, scoreObject, npmObj)
 	npmSource(npmObj, count)
 	//fmt.Println(npmObj.gitRepo)
-	fmt.Println(npmObj.numCommits)
-	fmt.Println(npmObj.numMaintainers)
+	fmt.Println("npm commits: ", npmObj.numCommits)
+	fmt.Println("npm maintainers: ", npmObj.numMaintainers)
 	if(licenseCompatability(npmObj.license) == true){
 		scoreObject.license = 1
 	} else{
@@ -203,6 +210,13 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	localBranchCount(count, npmObj)
 	fmt.Println("numBranches npm ", npmObj.numBranches)
 	//calc score/output json
+	//remove recently created directory after info is pulled
+	command2 := exec.Command("rm", "-rf", "clonedir"+strconv.Itoa(count))
+
+	if err := command2.Run(); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 }
 
 func githubSource(url string, count int) (output []byte) {
@@ -233,6 +247,14 @@ func npmSource(npmObj *npmObject, count int) {
 	/*b := binary.BigEndian.Uint32(output)
 	float := math.Float32frombits(b)*/
 	npmObj.numCommits = strings.TrimSuffix(string(output), "\n")
+	
+	/*//remove recently created directory after info is pulled
+	command2 := exec.Command("rm", "-rf", "clonedir"+strconv.Itoa(count))
+
+	if err := command2.Run(); err != nil {
+		fmt.Println(err.Error())
+		return
+	}*/
 
 }
 
