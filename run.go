@@ -142,6 +142,7 @@ func file(filename string) {
 			var gitObj gitObject
 			urlCount += 1
 			githubFunc(line, scoreObject, &gitObj, urlCount)
+			githubCalcScores(scoreObject, &gitObj)
 		} else if strings.Contains(line, "npmjs.com") {
 			var npmObj npmObject
 			urlCount += 1
@@ -168,23 +169,46 @@ func npmCalcScores(scoreObject *attribute, npmObj *npmObject){
 	//avg of all
 	scoreObject.netScore = float64(npmObj.numMaintainers)
 	
-	fmt.Printf("{\"URL\": %s, \"NetScore\": %.1f, \"RampUp\": %.1f, \"Correctness\": %.1f, \"BusFactor\": %.1f, \"ResponsiveMaintainer\": %.1f, \"License\": %d}", scoreObject.url, scoreObject.netScore, scoreObject.rampUp, scoreObject.correctness, scoreObject.responsiveness, scoreObject.busFactor, scoreObject.license)
+	fmt.Printf("{\"URL\": %s, \"NetScore\": %.1f, \"RampUp\": %.1f, \"Correctness\": %.1f, \"BusFactor\": %.1f, \"ResponsiveMaintainer\": %.1f, \"License\": %d}\n", scoreObject.url, scoreObject.netScore, scoreObject.rampUp, scoreObject.correctness, scoreObject.responsiveness, scoreObject.busFactor, scoreObject.license)
+}
+
+func githubCalcScores(scoreObject *attribute, gitObj *gitObject) {
+	if f, err := strconv.ParseFloat(gitObj.numCommits, 32); err == nil{
+		scoreObject.responsiveness= f
+	}
+	scoreObject.busFactor = float32(gitObj.numPullRequests)
+
+	scoreObject.correctness = float64(gitObj.numPullRequests)
+
+	//rampup = based on branches the less the easier to rampup
+	scoreObject.rampUp = float32(gitObj.numPullRequests)
+
+	//avg of all
+	scoreObject.netScore = float64(gitObj.numPullRequests)
+	
+	fmt.Printf("{\"URL\": %s, \"NetScore\": %.1f, \"RampUp\": %.1f, \"Correctness\": %.1f, \"BusFactor\": %.1f, \"ResponsiveMaintainer\": %.1f, \"License\": %d}\n", scoreObject.url, scoreObject.netScore, scoreObject.rampUp, scoreObject.correctness, scoreObject.responsiveness, scoreObject.busFactor, scoreObject.license)
 }
 
 func githubFunc(url string, scoreObject *attribute, gitObj *gitObject, count int) {
 	split := strings.Split(url, "/")
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
-	print("Owner: ", owner, " Repo: ", repo, "\n")
+	//print("Owner: ", owner, " Repo: ", repo, "\n")
 	gitObj.numCommits = strings.TrimSuffix(string(githubSource(url, count)), "\n")
 	
 	var fullRepo string = owner + "/" + repo
 	gitObj.numPullRequests = githubPullReq(fullRepo)
+	if(githubLicense(fullRepo) == true){
+		scoreObject.license = 1
+	}else{
+		scoreObject.license = 0
+	}
+	//println("git license: ", scoreObject.license)
 	//value3 := githubGraphQL
 	//intConv, _ := strconv.Atoi(string(value))
 	//gitHubGraphQL(repo, owner)
-	fmt.Println("git num commits: ", gitObj.numCommits)
-	fmt.Println("git num PR: ", gitObj.numPullRequests)
+	//fmt.Println("git num commits: ", gitObj.numCommits)
+	//fmt.Println("git num PR: ", gitObj.numPullRequests)
 
 	//remove recently created directory after info is pulled
 	command2 := exec.Command("rm", "-rf", "clonedir"+strconv.Itoa(count))
@@ -215,7 +239,7 @@ func githubFunc(url string, scoreObject *attribute, gitObj *gitObject, count int
 func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	split := strings.Split(url, "/")
 	packageName := split[len(split)-1]
-	print("Package: ", packageName, "\n")
+	//print("Package: ", packageName, "\n")
 	npmRestAPI(packageName, scoreObject, npmObj)
 	npmSource(npmObj, count)
 	//fmt.Println(npmObj.gitRepo)
@@ -301,6 +325,33 @@ func githubPullReq(repoName string) (value2 int) {
 	return pullRequests.TotalCount
 }
 
+type LicenseType struct {
+	//License_Type string `json:"license"`
+	LicenseType struct {
+		LicenseName string `json:"spdx_id"`
+	}`json:"license"`
+}
+
+func githubLicense(repoName string) (bool) {
+	req, _ := http.NewRequest("GET", "https://api.github.com/repos/"+repoName+"/license", nil) 
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+
+	if err != nil {
+		fmt.Print(err.Error())
+		os.Exit(1)
+	}
+
+	defer res.Body.Close()
+
+	var license LicenseType
+	json.NewDecoder(res.Body).Decode(&license)
+	
+	return licenseCompatability(license.LicenseType.LicenseName)
+}
+
 func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 
 	//append packageName to the api url and send request
@@ -340,16 +391,16 @@ func npmRestAPI(packageName string, scoreObject *attribute, npmObj *npmObject) {
 	npmObj.license = license.(string)
 
 	//fmt.Print("number of contributors: ", scoreObject.responsiveness)
-	fmt.Print("\nlicense: ", contributors["license"].(string))
+	//fmt.Print("\nlicense: ", contributors["license"].(string))
 	//fmt.Print("\ngithub url: ", contributors["repository"].(map[string]interface{})["url"])
 	split := strings.Split(contributors["repository"].(map[string]interface{})["url"].(string), "/")
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
-	fmt.Println("Owner: ", owner, " Repo: ", repo)
+	//fmt.Println("Owner: ", owner, " Repo: ", repo)
 	//var npmGitString string = owner + "/" + repo
 	npmObj.gitRepo = owner + "/" + repo
 	//fmt.Print("\ngithub url: ", contributors["repository"].(map[string]interface{})["url"])
-	fmt.Print("\n")
+	//fmt.Print("\n")
 }
 
 func licenseCompatability(license string) (compatible bool) {
@@ -475,7 +526,7 @@ func npmLicense(packageName string) {
 		fmt.Print("failed to decode api response: ", err)
 		return
 	}
-	fmt.Print("license: ", array["license"], "\n")
+	//fmt.Print("license: ", array["license"], "\n")
 }
 
 func localBranchCount(count int, npmObj *npmObject) {
