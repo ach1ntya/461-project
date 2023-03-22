@@ -3,10 +3,12 @@ package main
 import (
 	"bufio"
 	"context"
+
 	//"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+
 	//"math"
 	"net/http"
 	"os"
@@ -22,8 +24,8 @@ import (
 
 type attribute struct {
 	url            string
-	netScore       float64 
-	rampUp         float32
+	netScore       float64
+	rampUp         float64
 	correctness    float64
 	busFactor      float32
 	responsiveness float64
@@ -32,7 +34,7 @@ type attribute struct {
 
 type gitObject struct {
 	// numCommits int
-	numCommits string 
+	numCommits string
 	//numPullRequests float32
 	numPullRequests int
 
@@ -47,7 +49,7 @@ type npmObject struct {
 	numCommits     string
 	numMaintainers float32
 	numBranches    string
-	graphQL		   float32
+	graphQL        float32
 	gitRepo        string
 	license        string
 }
@@ -154,38 +156,144 @@ func file(filename string) {
 	}
 }
 
-func npmCalcScores(scoreObject *attribute, npmObj *npmObject){
-	if f, err := strconv.ParseFloat(strings.TrimSuffix(npmObj.numCommits, "\n"), 64); err == nil{
+func npmCalcScores(scoreObject *attribute, npmObj *npmObject) {
+	//Calculate for correctness
+	if f, err := strconv.ParseFloat(strings.TrimSuffix(npmObj.numCommits, "\n"), 64); err == nil {
 		scoreObject.correctness = f
 	}
-	if f, err := strconv.ParseFloat(npmObj.numBranches, 32); err == nil{
-		scoreObject.responsiveness= f
-	}
-	scoreObject.busFactor = npmObj.numMaintainers
+	maxValue := 100.0 //max num of commits
+	minValue := 10.0  //min num of commits
+	maxScore := 1.0
+	minScore := 0.0
 
+	if scoreObject.correctness <= minValue {
+		scoreObject.correctness = minScore
+	} else if scoreObject.correctness >= maxValue {
+		scoreObject.correctness = maxScore
+	} else {
+		normalizedValue := (scoreObject.correctness - minValue) / (maxValue - minValue)
+		scoreObject.correctness = minScore + normalizedValue*(maxScore-minScore)
+	}
+
+	//Calculate for responsiveness
+	if f, err := strconv.ParseFloat(npmObj.numBranches, 32); err == nil {
+		scoreObject.responsiveness = f
+	}
+	maxResValue := 30.0 //max num of branches
+	minResValue := 10.0 //min num of branches
+	maxResScore := 1.0
+	minResScore := 0.0
+
+	if scoreObject.responsiveness <= minResValue {
+		scoreObject.responsiveness = minResScore
+	} else if scoreObject.responsiveness >= maxResValue {
+		scoreObject.responsiveness = maxResScore
+	} else {
+		normalizedValue := (scoreObject.responsiveness - minResValue) / (maxResValue - minResValue)
+		scoreObject.responsiveness = minResScore + normalizedValue*(maxResScore-minResScore)
+	}
+	//Calculate for busFactor
+	scoreObject.busFactor = npmObj.numMaintainers
+	maxBusValue := 50.0 //max num of contributors
+	minBusValue := 2.0  //min num of contributors
+	maxBusScore := 1.0
+	minBusScore := 0.0
+
+	if float64(scoreObject.busFactor) <= minBusValue {
+		scoreObject.busFactor = float32(minBusScore)
+	} else if float64(scoreObject.busFactor) >= maxBusValue {
+		scoreObject.busFactor = float32(maxBusScore)
+	} else {
+		normalizedValue := (float64(scoreObject.busFactor) - minBusValue) / (maxBusValue - minBusValue)
+		scoreObject.busFactor = float32(minBusScore) + float32(normalizedValue)*(float32(maxBusScore)-float32(minBusScore))
+	}
+
+	//Calculate rampUp
 	//rampup = based on branches the less the easier to rampup
-	scoreObject.rampUp = npmObj.numMaintainers
+	f, err := strconv.ParseFloat(npmObj.numBranches, 32)
+	if err != nil {
+		// handle error
+	} else {
+		scoreObject.rampUp = f
+	}
+	maxBranchValue := 10.0
+	normalizedValue := maxBranchValue / scoreObject.rampUp
+	if scoreObject.rampUp <= maxBranchValue {
+		scoreObject.rampUp = 1
+	}
+	if scoreObject.rampUp > maxBranchValue {
+		scoreObject.rampUp = normalizedValue
+	}
 
 	//avg of all
-	scoreObject.netScore = float64(npmObj.numMaintainers)
-	
-	fmt.Printf("{\"URL\": %s, \"NetScore\": %.1f, \"RampUp\": %.1f, \"Correctness\": %.1f, \"BusFactor\": %.1f, \"ResponsiveMaintainer\": %.1f, \"License\": %d}\n", scoreObject.url, scoreObject.netScore, scoreObject.rampUp, scoreObject.correctness, scoreObject.responsiveness, scoreObject.busFactor, scoreObject.license)
+	scoreObject.netScore = (float64(scoreObject.busFactor) + float64(scoreObject.correctness) + float64(scoreObject.correctness) + float64(scoreObject.rampUp)) / 4
+	fmt.Printf("{\"URL\": %s, \"NetScore\": %.1f, \"RampUp\": %.1f, \"Correctness\": %.1f, \"BusFactor\": %.1f, \"ResponsiveMaintainer\": %.1f, \"License\": %d}\n", scoreObject.url, scoreObject.netScore, scoreObject.rampUp, scoreObject.correctness, scoreObject.busFactor, scoreObject.responsiveness, scoreObject.license)
 }
 
 func githubCalcScores(scoreObject *attribute, gitObj *gitObject) {
-	if f, err := strconv.ParseFloat(gitObj.numCommits, 32); err == nil{
-		scoreObject.responsiveness= f
+	//Calculate responsiveness
+	if f, err := strconv.ParseFloat(gitObj.numCommits, 32); err == nil {
+		scoreObject.responsiveness = f
 	}
+	maxResValue := 50.0 //max num of commits
+	minResValue := 10.0 //min num of commits
+	maxResScore := 1.0
+	minResScore := 0.0
+
+	if scoreObject.responsiveness <= minResValue {
+		scoreObject.responsiveness = minResScore
+	} else if scoreObject.responsiveness >= maxResValue {
+		scoreObject.responsiveness = maxResScore
+	} else {
+		normalizedValue := (scoreObject.responsiveness - minResValue) / (maxResValue - minResValue)
+		scoreObject.responsiveness = minResScore + normalizedValue*(maxResScore-minResScore)
+	}
+	//Calculate busFactor
 	scoreObject.busFactor = float32(gitObj.numPullRequests)
+	maxBusValue := 50.0 //max num of contributors
+	minBusValue := 2.0  //min num of contributors
+	maxBusScore := 1.0
+	minBusScore := 0.0
 
+	if float64(scoreObject.busFactor) <= minBusValue {
+		scoreObject.busFactor = float32(minBusScore)
+	} else if float64(scoreObject.busFactor) >= maxBusValue {
+		scoreObject.busFactor = float32(maxBusScore)
+	} else {
+		normalizedValue := (float64(scoreObject.busFactor) - minBusValue) / (maxBusValue - minBusValue)
+		scoreObject.busFactor = float32(minBusScore) + float32(normalizedValue)*(float32(maxBusScore)-float32(minBusScore))
+	}
+	//Calculate correctness
 	scoreObject.correctness = float64(gitObj.numPullRequests)
+	maxValue := 100.0 //max num of commits
+	minValue := 10.0  //min num of commits
+	maxScore := 1.0
+	minScore := 0.0
 
+	if scoreObject.correctness <= minValue {
+		scoreObject.correctness = minScore
+	} else if scoreObject.correctness >= maxValue {
+		scoreObject.correctness = maxScore
+	} else {
+		normalizedValue := (scoreObject.correctness - minValue) / (maxValue - minValue)
+		scoreObject.correctness = minScore + normalizedValue*(maxScore-minScore)
+	}
+
+	//Calculate rampUp
 	//rampup = based on branches the less the easier to rampup
-	scoreObject.rampUp = float32(gitObj.numPullRequests)
+	scoreObject.rampUp = float64(gitObj.numPullRequests)
+	maxPullValue := 20.0
+	normalizedValue := maxPullValue / scoreObject.rampUp
+	if scoreObject.rampUp <= maxPullValue {
+		scoreObject.rampUp = 1
+	}
+	if scoreObject.rampUp > maxPullValue {
+		scoreObject.rampUp = normalizedValue
+	}
 
 	//avg of all
-	scoreObject.netScore = float64(gitObj.numPullRequests)
-	
+	scoreObject.netScore = (float64(scoreObject.busFactor) + float64(scoreObject.correctness) + float64(scoreObject.correctness) + float64(scoreObject.rampUp)) / 4
+
 	fmt.Printf("{\"URL\": %s, \"NetScore\": %.1f, \"RampUp\": %.1f, \"Correctness\": %.1f, \"BusFactor\": %.1f, \"ResponsiveMaintainer\": %.1f, \"License\": %d}\n", scoreObject.url, scoreObject.netScore, scoreObject.rampUp, scoreObject.correctness, scoreObject.responsiveness, scoreObject.busFactor, scoreObject.license)
 }
 
@@ -195,12 +303,12 @@ func githubFunc(url string, scoreObject *attribute, gitObj *gitObject, count int
 	repo := split[len(split)-1]
 	//print("Owner: ", owner, " Repo: ", repo, "\n")
 	gitObj.numCommits = strings.TrimSuffix(string(githubSource(url, count)), "\n")
-	
+
 	var fullRepo string = owner + "/" + repo
 	gitObj.numPullRequests = githubPullReq(fullRepo)
-	if(githubLicense(fullRepo) == true){
+	if githubLicense(fullRepo) == true {
 		scoreObject.license = 1
-	}else{
+	} else {
 		scoreObject.license = 0
 	}
 	//println("git license: ", scoreObject.license)
@@ -245,9 +353,9 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	//fmt.Println(npmObj.gitRepo)
 	/*fmt.Println("npm commits: ", npmObj.numCommits)
 	fmt.Println("npm maintainers: ", npmObj.numMaintainers)*/
-	if(licenseCompatability(npmObj.license) == true){
+	if licenseCompatability(npmObj.license) == true {
 		scoreObject.license = 1
-	} else{
+	} else {
 		scoreObject.license = 0
 	}
 	localBranchCount(count, npmObj)
@@ -290,7 +398,7 @@ func npmSource(npmObj *npmObject, count int) {
 	/*b := binary.BigEndian.Uint32(output)
 	float := math.Float32frombits(b)*/
 	npmObj.numCommits = strings.TrimSuffix(string(output), "\n")
-	
+
 	/*//remove recently created directory after info is pulled
 	command2 := exec.Command("rm", "-rf", "clonedir"+strconv.Itoa(count))
 
@@ -329,11 +437,11 @@ type LicenseType struct {
 	//License_Type string `json:"license"`
 	LicenseType struct {
 		LicenseName string `json:"spdx_id"`
-	}`json:"license"`
+	} `json:"license"`
 }
 
-func githubLicense(repoName string) (bool) {
-	req, _ := http.NewRequest("GET", "https://api.github.com/repos/"+repoName+"/license", nil) 
+func githubLicense(repoName string) bool {
+	req, _ := http.NewRequest("GET", "https://api.github.com/repos/"+repoName+"/license", nil)
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	client := &http.Client{}
@@ -348,7 +456,7 @@ func githubLicense(repoName string) (bool) {
 
 	var license LicenseType
 	json.NewDecoder(res.Body).Decode(&license)
-	
+
 	return licenseCompatability(license.LicenseType.LicenseName)
 }
 
@@ -530,7 +638,7 @@ func npmLicense(packageName string) {
 }
 
 func localBranchCount(count int, npmObj *npmObject) {
-	FolderLoc, err:=  filepath.Abs("clonedir" + strconv.Itoa(count))
+	FolderLoc, err := filepath.Abs("clonedir" + strconv.Itoa(count))
 	if err != nil {
 		fmt.Println("Filepath for folder not found", err)
 		return
