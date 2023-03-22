@@ -22,11 +22,11 @@ import (
 
 type attribute struct {
 	url            string
-	netScore       string
+	netScore       float64 
 	rampUp         float32
-	correctness    float32
+	correctness    float64
 	busFactor      float32
-	responsiveness float32
+	responsiveness float64
 	license        int
 }
 
@@ -141,18 +141,37 @@ func file(filename string) {
 		if strings.Contains(line, "github.com") {
 			var gitObj gitObject
 			urlCount += 1
-			githubFunc(line, &gitObj, urlCount)
+			githubFunc(line, scoreObject, &gitObj, urlCount)
 		} else if strings.Contains(line, "npmjs.com") {
 			var npmObj npmObject
 			urlCount += 1
 			npmjs(line, scoreObject, urlCount, &npmObj)
+			npmCalcScores(scoreObject, &npmObj)
 		} else {
 			fmt.Println("Error: ", line, "is not a valid URL")
 		}
 	}
 }
 
-func githubFunc(url string, gitObj *gitObject, count int) {
+func npmCalcScores(scoreObject *attribute, npmObj *npmObject){
+	if f, err := strconv.ParseFloat(strings.TrimSuffix(npmObj.numCommits, "\n"), 64); err == nil{
+		scoreObject.correctness = f
+	}
+	if f, err := strconv.ParseFloat(npmObj.numBranches, 32); err == nil{
+		scoreObject.responsiveness= f
+	}
+	scoreObject.busFactor = npmObj.numMaintainers
+
+	//rampup = based on branches the less the easier to rampup
+	scoreObject.rampUp = npmObj.numMaintainers
+
+	//avg of all
+	scoreObject.netScore = float64(npmObj.numMaintainers)
+	
+	fmt.Printf("{\"URL\": %s, \"NetScore\": %.1f, \"RampUp\": %.1f, \"Correctness\": %.1f, \"BusFactor\": %.1f, \"ResponsiveMaintainer\": %.1f, \"License\": %d}", scoreObject.url, scoreObject.netScore, scoreObject.rampUp, scoreObject.correctness, scoreObject.responsiveness, scoreObject.busFactor, scoreObject.license)
+}
+
+func githubFunc(url string, scoreObject *attribute, gitObj *gitObject, count int) {
 	split := strings.Split(url, "/")
 	owner := split[len(split)-2]
 	repo := split[len(split)-1]
@@ -200,15 +219,15 @@ func npmjs(url string, scoreObject *attribute, count int, npmObj *npmObject) {
 	npmRestAPI(packageName, scoreObject, npmObj)
 	npmSource(npmObj, count)
 	//fmt.Println(npmObj.gitRepo)
-	fmt.Println("npm commits: ", npmObj.numCommits)
-	fmt.Println("npm maintainers: ", npmObj.numMaintainers)
+	/*fmt.Println("npm commits: ", npmObj.numCommits)
+	fmt.Println("npm maintainers: ", npmObj.numMaintainers)*/
 	if(licenseCompatability(npmObj.license) == true){
 		scoreObject.license = 1
 	} else{
 		scoreObject.license = 0
 	}
 	localBranchCount(count, npmObj)
-	fmt.Println("numBranches npm ", npmObj.numBranches)
+	//fmt.Println("numBranches npm ", npmObj.numBranches)
 	//calc score/output json
 	//remove recently created directory after info is pulled
 	command2 := exec.Command("rm", "-rf", "clonedir"+strconv.Itoa(count))
