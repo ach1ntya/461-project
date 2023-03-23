@@ -216,8 +216,8 @@ func githubCalcScores(scoreObject *attribute, gitObj *gitObject) {
 	if f, err := strconv.ParseFloat(gitObj.numCommits, 32); err == nil {
 		scoreObject.responsiveness = f
 	}
-	maxResValue := 50.0 //max num of commits
-	minResValue := 10.0 //min num of commits
+	maxResValue := 750.0 //max num of commits
+	minResValue := 50.0  //min num of commits
 	maxResScore := 1.0
 	minResScore := 0.0
 
