@@ -250,8 +250,8 @@ func githubCalcScores(scoreObject *attribute, gitObj *gitObject) {
 	}
 	//Calculate busFactor
 	scoreObject.busFactor = float32(gitObj.numPullRequests)
-	maxBusValue := 50.0 //max num of contributors
-	minBusValue := 2.0  //min num of contributors
+	maxBusValue := 100.0 //max num of PR
+	minBusValue := 10.0  //min num of PR
 	maxBusScore := 1.0
 	minBusScore := 0.0
 
@@ -265,8 +265,8 @@ func githubCalcScores(scoreObject *attribute, gitObj *gitObject) {
 	}
 	//Calculate correctness
 	scoreObject.correctness = float64(gitObj.numPullRequests)
-	maxValue := 100.0 //max num of commits
-	minValue := 10.0  //min num of commits
+	maxValue := 100.0 //max num of PR
+	minValue := 10.0  //min num of PR
 	maxScore := 1.0
 	minScore := 0.0
 
@@ -294,7 +294,7 @@ func githubCalcScores(scoreObject *attribute, gitObj *gitObject) {
 	//avg of all
 	scoreObject.netScore = (float64(scoreObject.busFactor) + float64(scoreObject.correctness) + float64(scoreObject.correctness) + float64(scoreObject.rampUp)) / 4
 
-	fmt.Printf("{\"URL\": %s, \"NetScore\": %.1f, \"RampUp\": %.1f, \"Correctness\": %.1f, \"BusFactor\": %.1f, \"ResponsiveMaintainer\": %.1f, \"License\": %d}\n", scoreObject.url, scoreObject.netScore, scoreObject.rampUp, scoreObject.correctness, scoreObject.responsiveness, scoreObject.busFactor, scoreObject.license)
+	fmt.Printf("{\"URL\": %s, \"NetScore\": %.1f, \"RampUp\": %.1f, \"Correctness\": %.1f, \"BusFactor\": %.1f, \"ResponsiveMaintainer\": %.1f, \"License\": %d}\n", scoreObject.url, scoreObject.netScore, scoreObject.rampUp, scoreObject.correctness, scoreObject.busFactor, scoreObject.responsiveness, scoreObject.license)
 }
 
 func githubFunc(url string, scoreObject *attribute, gitObj *gitObject, count int) {
