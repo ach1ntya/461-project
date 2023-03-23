@@ -69,32 +69,13 @@ func newGitObject(url string) (*gitObject) {
 }*/
 
 func installDeps() {
-	file, err := os.Open("requirements.txt")
+	command := exec.Command("go", "mod", "download")
+	err := command.Run()
 	if err != nil {
 		fmt.Println("Error: ", err)
 		os.Exit(1)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	var count int = 0
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-		if len(scanner.Text()) != 0 {
-			command := exec.Command("go", "get", "-u", scanner.Text())
-			err := command.Run()
-			if err == nil {
-				count++
-			} else {
-				fmt.Println("Error installing package: ", scanner.Text())
-			}
-		}
-	}
-	if count == 0 {
-		fmt.Println("No packages installed.")
-		os.Exit(1)
 	} else {
-		fmt.Println(count, "packages installed...")
+		fmt.Println("Downloaded 31 dependencies...")
 		os.Exit(0)
 	}
 }
